@@ -5,15 +5,30 @@
 
 		<title>Airspace Sentry</title>
 
-		<link rel="preconnect" href="https://fonts.gstatic.com">
-		<link href="https://fonts.googleapis.com/css2?IBM+Plex+Mono:wght@300&family=Poppins:wght@300;400;500;600;700&family=Roboto:wght@300;400;500&display=swap" rel="stylesheet"> 
+		<!-- Google Fonts -->
+		<link rel="preconnect" href="https://fonts.googleapis.com">
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+		<link href="https://fonts.googleapis.com/css2?family=Victor+Mono:wght@200;400;700&display=swap" rel="stylesheet">		
 
 		<link rel="stylesheet" href="include/styles.css">
+
+		<!-- Mapbox -->
+		<script src='https://api.mapbox.com/mapbox-gl-js/v2.14.1/mapbox-gl.js'></script>
+		<link href='https://api.mapbox.com/mapbox-gl-js/v2.14.1/mapbox-gl.css' rel='stylesheet' />
+		<script src='https://npmcdn.com/mapbox-gl-circle/dist/mapbox-gl-circle.min.js'></script>
 	</head>
 
 	<body>
 		<main>
-
+			<header>
+				<h1>Airspace Sentry</h1>
+				<nav>
+					<div class="last-updated">Next refresh: <span class="refresh-in">-</span>s</div>
+				</nav>
+			</header>
+			<div id='map' class="mapbox-map"></div>
+			<section class="options">
+			</section>
 		</main>
 		
 		<script src="include/scripts.js"></script>
