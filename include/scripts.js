@@ -22,26 +22,22 @@ const config = {
 		token: 'pk.eyJ1IjoiZ2NzYWx6YnVyZyIsImEiOiJjam1pNm5uZmcwMXNyM3FtNGp6dTY3MGxsIn0.PmLPkI3T8UxjEIPnz7fxEA'
 	},
 	fetch: {
-		interval: 10,
+		interval: 5,
 		nextFetch: 0
 	}
 }
+
+// Debug toggle, to help :)
+
 if(config.debug){
 	config.search.radius = 150000
 	config.centre.zoom = 7
+	config.fetch.interval = 2
 }
 
-const trackedFlights = [
-/*	
-	{
-		flight: 'xxx',
-		is_active: false,
-		entries: [
-			{lat: 0, lng: 0, heading: 0, alt_baro: 0}
-		]
-	}
-*/
-]
+let trackedData = {
+	flights: []
+}
 
 // TODO: Add stats boxes at the top: TRACKING, INTERSECTS LOGGED, RUNTIME
 
@@ -60,174 +56,23 @@ const map = new mapboxgl.Map({
 const addTDA = () => {
 
 	map.on('load', () => {
-
 		// Add a data source containing GeoJSON data.
-		map.addSource('maine', {
+		map.addSource('northumbria-tda', {
 			'type': 'geojson',
-			'data': {
-				"type": "FeatureCollection",
-				"features": [
-					{
-						'type': 'Feature',
-						"properties": {
-							"title": "TDA Region A"
-						},
-						'geometry': {
-							'type': 'Polygon',
-							'coordinates': [
-								[
-									[-1.4427778,55.0366667],
-									[-1.4955556,55.09638889999999],
-									[-1.5352778,55.1638889],
-									[-1.5197222,55.1644444],
-									[-1.5377778,55.18611109999999],
-									[-1.7088889,55.1430556],
-									[-1.5311111,55.0097222],
-									[-1.4427778,55.0366667]
-								]
-							]
-						}
-					},
-					{
-						'type': 'Feature',
-						"properties": {
-							"title": "TDA Region B"
-						},
-						'geometry': {
-							'type': 'Polygon',
-							'coordinates': [
-								[
-									[-1.5377778,55.18611109999999,228.6],
-									[-1.5197222,55.1644444,228.6],
-									[-1.5033333,55.1830556,228.6],
-									[-1.5380556,55.2236111,228.6],
-									[-1.7063889,55.1825,228.6],
-									[-1.7088889,55.1430556,228.6],
-									[-1.5377778,55.18611109999999,228.6]
-								]
-							]
-						}
-					},
-					{
-						'type': 'Feature',
-						"properties": {
-							"title": "TDA Region C"
-						},
-						'geometry': {
-							'type': 'Polygon',
-							'coordinates': [
-								[
-									[-1.9258333,55.1297222,304.8],
-									[-1.7088889,55.1430556,304.8],
-									[-1.7063889,55.1825,304.8],
-									[-1.8730556,55.1741667,304.8],
-									[-1.9727778,55.15722220000001,304.8],
-									[-1.9572222,55.12444439999999,304.8],
-									[-1.9258333,55.1297222,304.8 ]
-								]
-							]
-						}
-					},
-					{
-						'type': 'Feature',
-						"properties": {
-							"title": "TDA Region D"
-						},
-						'geometry': {
-							'type': 'Polygon',
-							'coordinates': [
-								[
-									[-1.9572222,55.12444439999999,350.52],
-									[-1.9727778,55.15722220000001,350.52],
-									[-2.0433333,55.0944444,350.52],
-									[-2.0138889,55.0708333,350.52],
-									[-1.9572222,55.12444439999999,350.52]
-								]
-							]
-						}
-					},
-					{
-						'type': 'Feature',
-						"properties": {
-							"title": "TDA Region E"
-						},
-						'geometry': {
-							'type': 'Polygon',
-							'coordinates': [
-								[
-									[-2.0908333,55.03833329999999,304.8],
-									[-2.0138889,55.0708333,304.8],
-									[-2.0433333,55.0944444,304.8],
-									[-2.1447222,55.045,304.8],
-									[-2.0908333,55.03833329999999,304.8]
-								]
-							]
-						}
-					},
-					{
-						'type': 'Feature',
-						"properties": {
-							"title": "TDA Region F"
-						},
-						'geometry': {
-							'type': 'Polygon',
-							'coordinates': [
-								[
-									[-2.2233333,54.9591667,365.76],
-									[-2.1766667,54.9633333,365.76],
-									[-2.0683333,54.9630556,365.76],
-									[-2.07,54.9866667,365.76],
-									[-2.1313889,54.9941667,365.76],
-									[-2.1316667,55.01,365.76],
-									[-2.0902778,55.03833329999999,365.76],
-									[-2.1447222,55.045,365.76],
-									[-2.1763889,55.0222222,365.76],
-									[-2.1991667,55.0058333,365.76],
-									[-2.2402778,54.98555559999999,365.7],
-									[-2.2769444,54.9858333,365.76],
-									[-2.2769444,54.9591667,365.76],
-									[-2.2233333,54.9591667,365.76]
-								]
-							]
-						}
-					},
-					{
-						'type': 'Feature',
-						"properties": {
-							"title": "TDA Region G"
-						},
-						'geometry': {
-							'type': 'Polygon',
-							'coordinates': [
-								[
-									[-2.3147222,54.9591667,365.76],
-									[-2.2769444,54.9591667,365.76],
-									[-2.2769444,54.9858333,365.76],
-									[-2.3170556,54.9866667,365.76],
-									[-2.4119444,54.9780556,365.76],
-									[-2.4827778,54.9780556,365.76],
-									[-2.4802778,54.9520278,365.76],
-									[-2.3147222,54.9591667,365.76]
-								]
-							]
-						}
-					}
-				]
-			}
+			'data': '/data/tda.geojson'
 		})
 		
 		// Add a new layer to visualize the polygon.
 		map.addLayer({
-			'id': 'maine',
+			'id': 'northumbria-tda',
 			'type': 'fill',
-			'source': 'maine', // reference the data source
+			'source': 'northumbria-tda', // reference the data source
 			'layout': {},
 			'paint': {
 				'fill-color': 'rgb(249, 241, 138)', // blue color fill
 				'fill-opacity': 0.7
 			}
 		})
-
 	})
 }
 
@@ -253,39 +98,40 @@ const fetchADSB = async () => {
 		// Save aircraft
 		for(let aircraft of resultJSON.ac){
 
-			if(!aircraft.flight){
-				console.log(aircraft)
-				continue
-			}
+			// Ignore flights on the ground
+			if(aircraft.alt_baro == 'ground') continue
 
-			const flightName = aircraft.flight.trim()
+			// Generate unique-enough ID for this data source on the map
+			const mapSourceID = `${aircraft.hex}-${Date.now()}`
+		
+			// If flight doesn't yet exist as active flight path
+			if(!trackedData.flights.find(flight => (flight.hex == aircraft.hex && flight.is_active))){
 
-			let found = false
-
-			// If we find it, add on the point we just captured
-			for(let flight of trackedFlights){
-				if(flight.flight == flightName && flight.is_active){
-					// TODO: combine this push with the bit below
-					// TODO: Use an array 'find' rather than this loop
-					flight.entries.push({lat: aircraft.lat, lng: aircraft.lon, mag_heading: aircraft.mag_heading, alt_baro: aircraft.alt_baro})
-					found = true
-					break
-				}
-			}
-
-			// Otherwise, create a new flight entry in log
-			if(!found){
-				trackedFlights.push({
-					flight: flightName,
+				// Create new log entry
+				trackedData.flights.push({
+					hex: aircraft.hex,
+					flightName: (aircraft.flight ?? '').trim(),
 					is_active: true,
-					entries: [
-						{lat: aircraft.lat, lng: aircraft.lon, mag_heading: aircraft.mag_heading, alt_baro: aircraft.alt_baro}
-					]
+					entries: [],
+					coordinates: [],
+					sourceID: mapSourceID
 				})
+
+				// Create a new flight track
+				createMapFlightTrackSource(mapSourceID)
 			}
+
+			// Now push latest co-ordinates
+			const flight = trackedData.flights.find(flight => (flight.hex == aircraft.hex && flight.is_active))
+			flight.entries.push({lat: aircraft.lat, lng: aircraft.lon, heading: aircraft.track, alt_baro: aircraft.alt_baro})
+			flight.coordinates.push([aircraft.lon, aircraft.lat])
 
 		}
 
+		// Update localStorage
+		saveTracksToStorage(trackedData)
+
+		// Now draw them!
 		drawTracks()
 
 	} catch (error) {
@@ -304,7 +150,7 @@ const fetchADSB = async () => {
 //
 const drawTracks = () => {
 
-	for(let flight of trackedFlights){
+	for(let flight of trackedData.flights){
 		// TODO: Filter to only update flights which are still active?
 
 		// Create a marker, if one doesn't exist
@@ -320,7 +166,7 @@ const drawTracks = () => {
 		}
 
 		// Re-style the marker
-		flight.marker_elem.querySelector('.marker_plane').style.transform = `rotate(${flight.entries.at(-1).mag_heading}deg)`
+		flight.marker_elem.querySelector('.marker_plane').style.transform = `rotate(${flight.entries.at(-1).heading}deg)`
 		if(flight.entries.at(-1).alt_baro == 'ground'){
 			flight.marker_elem.style.opacity = '0.3'
 		}
@@ -328,7 +174,69 @@ const drawTracks = () => {
 		// Update the co-ordinates
 		flight.marker.setLngLat([flight.entries.at(-1).lng, flight.entries.at(-1).lat])
 
+		// Update the data for this track
+		map.getSource(flight.sourceID).setData({
+			"type": "Feature",
+			"properties": {},
+			"geometry": {
+				'type': 'LineString',
+				"coordinates": flight.coordinates
+			}
+		})
+
+		// TODO: Segment track based on intersection
 	}
+}
+
+
+// **********************************************************
+// LocalStorage
+
+const saveTracksToStorage = (jsonData) => {
+	// TODO: Fix this to make JSON the data only, and remove direct reference to the marker and marker_elem objects, which are what breaks it!
+	console.log(jsonData)
+//	localStorage.setItem('trackedData', JSON.stringify(jsonData))
+}
+
+const fetchTracksToStorage = () => {
+	trackedData = JSON.parse(localStorage.getItem('trackedData'))
+}
+
+const clearStorageAndTracks = () => {
+	localStorage.removeItem('trackedData')
+	trackedData = {
+		flights: []
+	}
+}
+
+// **********************************************************
+
+const createMapFlightTrackSource = (sourceID) => {
+	// Create a new flight track
+	map.addSource(sourceID, {
+		'type': 'geojson',
+		'data': {
+			"type": "Feature",
+			"properties": {},
+			"geometry": {
+				'type': 'LineString',
+				"coordinates": []
+			}
+		}
+	})
+	map.addLayer({
+		'id': sourceID,
+		'type': 'line',
+		'source': sourceID,
+		'layout': {
+			'line-join': 'round',
+			'line-cap': 'round'
+		},
+		'paint': {
+			'line-color': 'rgb(173, 244, 202)',
+			'line-width': 2
+		}
+	})
 }
 
 
@@ -349,6 +257,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 	// Draw TDA on map
 	addTDA()
 
+	// Fetch tracks from storage
+	//fetchTracksToStorage()
+
 	// Start fetching data
 	await fetchADSB()
 
@@ -361,9 +272,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 
 	// Trigger a search manually
-	/*document.querySelector('.search').addEventListener('click', async (e) => {
+	document.querySelector('.clear-storage').addEventListener('click', async (e) => {
 		e.preventDefault()
-		await fetchADSB()
-	})*/
+		clearStorageAndTracks()
+	})
 	
 })
