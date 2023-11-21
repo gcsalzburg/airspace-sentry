@@ -54,25 +54,22 @@ const map = new mapboxgl.Map({
 })
 
 const addTDA = () => {
-
-	map.on('load', () => {
-		// Add a data source containing GeoJSON data.
-		map.addSource('northumbria-tda', {
-			'type': 'geojson',
-			'data': '/data/tda.geojson'
-		})
-		
-		// Add a new layer to visualize the polygon.
-		map.addLayer({
-			'id': 'northumbria-tda',
-			'type': 'fill',
-			'source': 'northumbria-tda', // reference the data source
-			'layout': {},
-			'paint': {
-				'fill-color': 'rgb(249, 241, 138)', // blue color fill
-				'fill-opacity': 0.7
-			}
-		})
+	// Add a data source containing GeoJSON data.
+	map.addSource('northumbria-tda', {
+		'type': 'geojson',
+		'data': '/data/tda.geojson'
+	})
+	
+	// Add a new layer to visualize the polygon.
+	map.addLayer({
+		'id': 'northumbria-tda',
+		'type': 'fill',
+		'source': 'northumbria-tda', // reference the data source
+		'layout': {},
+		'paint': {
+			'fill-color': 'rgb(249, 241, 138)', // blue color fill
+			'fill-opacity': 0.7
+		}
 	})
 }
 
@@ -99,7 +96,13 @@ const fetchADSB = async () => {
 		for(let aircraft of resultJSON.ac){
 
 			// Ignore flights on the ground
-			if(aircraft.alt_baro == 'ground') continue
+			if(aircraft.alt_baro == 'ground'){
+				let flight = trackedData.flights.find(flight => (flight.hex == aircraft.hex && flight.is_active))
+				if(flight){
+					flight.is_active == false
+				}
+				continue
+			} 
 
 			// Generate unique-enough ID for this data source on the map
 			const mapSourceID = `${aircraft.hex}-${Date.now()}`
@@ -148,33 +151,34 @@ const fetchADSB = async () => {
 // 
 // Draw the tracks and planes
 //
+
+let mapMarkers = []
+
 const drawTracks = () => {
+
+	// Clear all markers
+	mapMarkers.forEach((marker) => marker.remove())
+	mapMarkers = []
 
 	for(let flight of trackedData.flights){
 		// TODO: Filter to only update flights which are still active?
 
-		// Create a marker, if one doesn't exist
-		if(!flight.marker){
-
-			// Create a DOM element for each marker.
-			flight.marker_elem = document.createElement('div')
-			flight.marker_elem.innerHTML = `<div class="marker_plane"></div>`
-			flight.marker_elem.style.width = `30px`
-			flight.marker_elem.style.height = `30px`
-
-			flight.marker = new mapboxgl.Marker(flight.marker_elem).setLngLat([flight.entries.at(-1).lng, flight.entries.at(-1).lat]).addTo(map)
-		}
-
-		// Re-style the marker
-		flight.marker_elem.querySelector('.marker_plane').style.transform = `rotate(${flight.entries.at(-1).heading}deg)`
+		// Create markers dynamically on the fly
+		const marker_elem = document.createElement('div')
+		marker_elem.innerHTML = `<div class="marker_plane" style="transform:rotate(${flight.entries.at(-1).heading}deg)"></div>`
+		marker_elem.style.width = `30px`
+		marker_elem.style.height = `30px`
 		if(flight.entries.at(-1).alt_baro == 'ground'){
-			flight.marker_elem.style.opacity = '0.3'
+			marker_elem.style.opacity = '0.3'
 		}
+		const marker = new mapboxgl.Marker(marker_elem).setLngLat([flight.entries.at(-1).lng, flight.entries.at(-1).lat]).addTo(map)
+		mapMarkers.push(marker)
 
-		// Update the co-ordinates
-		flight.marker.setLngLat([flight.entries.at(-1).lng, flight.entries.at(-1).lat])
+		marker_elem.addEventListener('hover', (e) => {
+			console.log(e)
+		})
 
-		// Update the data for this track
+		// Update the track data
 		map.getSource(flight.sourceID).setData({
 			"type": "Feature",
 			"properties": {},
@@ -194,8 +198,7 @@ const drawTracks = () => {
 
 const saveTracksToStorage = (jsonData) => {
 	// TODO: Fix this to make JSON the data only, and remove direct reference to the marker and marker_elem objects, which are what breaks it!
-	console.log(jsonData)
-//	localStorage.setItem('trackedData', JSON.stringify(jsonData))
+	localStorage.setItem('trackedData', JSON.stringify(jsonData))
 }
 
 const fetchTracksToStorage = () => {
@@ -247,21 +250,31 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 	// Search area for ADSB-Exchange
 	// Uses: https://github.com/smithmicro/mapbox-gl-circle/
-	const adsbSearchAreaCircle = new MapboxCircle({lat: config.centre.lat, lng: config.centre.lng}, config.search.radius, {
+	new MapboxCircle({lat: config.centre.lat, lng: config.centre.lng}, config.search.radius, {
 		editable: false,
 		fillColor: 'rgb(249, 138, 230)',
 		fillOpacity: 0.1,
 		strokeWeight: 0,
 	}).addTo(map)
 
-	// Draw TDA on map
-	addTDA()
 
-	// Fetch tracks from storage
-	//fetchTracksToStorage()
+	map.on('load', async () => {
 
-	// Start fetching data
-	await fetchADSB()
+		// Draw TDA on map
+		addTDA()
+
+		// Fetch tracks from storage
+		fetchTracksToStorage()
+		for(let flight of trackedData.flights){
+			createMapFlightTrackSource(flight.sourceID)
+		}
+		drawTracks()
+
+		// Start fetching data
+		await fetchADSB()
+
+	})
+
 
 	// Update countdown in the corner
 	const nextRefreshCountdown = setInterval(() => {
