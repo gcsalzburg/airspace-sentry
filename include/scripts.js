@@ -47,8 +47,6 @@ let trackedData = {
 	flights: []
 }
 
-// TODO: Add stats boxes at the top: TRACKING, INTERSECTS LOGGED, RUNTIME
-
 // **********************************************************
 // Setup Mapbox
 
@@ -86,7 +84,11 @@ const addTDA = () => {
 
 const fetchAndRender = async () => {
 
+	// Grab new data from ADSB
 	fetchADSB()
+
+	// Check for intersections on the active lines only
+	//	https://gist.github.com/rveciana/e0565ca3bfcebedb12bbc2d4edb9b6b3
 
 	// Update stats
 	updateStats()
@@ -236,8 +238,6 @@ const drawTracks = (drawAll = false) => {
 			// Set colour of this line to faded out
 			map.setPaintProperty(flight.sourceID, 'line-color', `${config.styles.colours.trackInactive}`)
 		}
-
-		// TODO: Segment track based on intersection
 	}
 }
 

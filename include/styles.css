@@ -35,6 +35,8 @@ h1{
 
 .options{
 	margin: 1em 0;
+	font-size: 0.7em;
+	text-align: right;
 }
 
 .marker_plane{
@@ -50,13 +52,13 @@ h1{
 .stats{
 	display:flex;
 	width: 65%;
-	margin: 20px 0;
+	margin: 20px 0 10px;
 }
 .stat{
 	/*border: 1px solid hsla(0, 0%, 100%, 50%);*/
-	border-bottom: 3px solid white;
+	border-bottom: 1px solid white;
 	flex-grow: 1;
-	margin-bottom: 10px;
+	margin-bottom: 8px;
 	padding: 0 0 8px 0;
 }
 .stat:not(:last-of-type){
