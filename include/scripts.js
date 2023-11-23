@@ -15,7 +15,7 @@ const config = {
 		ratio: 0.0005399568, // 1m = x nautical miles
 	},
 	rapidAPI: {
-		key: 'caea4449bfmshbd6d96699e0230bp166302jsn8e39dcf71903',
+		key: '',
 		host: 'adsbexchange-com1.p.rapidapi.com'
 	},
 	mapbox: {
@@ -54,7 +54,7 @@ let trackedData = {
 
 mapboxgl.accessToken = config.mapbox.token
 
-const map = new mapboxgl.Map({
+let map = new mapboxgl.Map({
 	container: 'map', // container ID
 	style: 'mapbox://styles/gcsalzburg/cjmn85as2dzu12rpkmaw53hsj', // style URL // TODO: Reduce dominance of underlying roads
 	center: [config.centre.lng, config.centre.lat], // starting position [lng, lat]
@@ -83,6 +83,24 @@ const addTDA = () => {
 
 // **********************************************************
 // Fetch data
+
+const fetchAndRender = async () => {
+
+	fetchADSB()
+
+	// Update stats
+	updateStats()
+
+	// Now draw them!
+	drawTracks()
+
+
+	// Fetch again!
+	setTimeout(() => {
+		fetchAndRender()
+	}, config.fetch.interval*1000)
+	config.fetch.nextFetch = Date.now()/1000 + config.fetch.interval
+}
 
 // Grab new update of data from ADSB Exchange via RapidAPI
 const fetchADSB = async () => {
@@ -161,16 +179,14 @@ const fetchADSB = async () => {
 		// Update localStorage
 		saveTracksToStorage(trackedData)
 
-		// Now draw them!
-		drawTracks()
-
 	}
+}
 
-	// Fetch again!
-	setTimeout(() => {
-		fetchADSB()
-	}, config.fetch.interval*1000)
-	config.fetch.nextFetch = Date.now()/1000 + config.fetch.interval
+
+
+const updateStats = () => {
+	document.querySelector('.stat-active').innerHTML = trackedData.flights.filter(flight => flight.is_active).length
+	document.querySelector('.stat-logged').innerHTML = trackedData.flights.length
 }
 
 // 
@@ -281,6 +297,15 @@ const createMapFlightTrackSource = (sourceID) => {
 
 document.addEventListener("DOMContentLoaded", async () => {
 
+
+	// Check for RapidAPI Key
+	if(!localStorage.getItem('RapidAPIKey')){
+		let RapidAPI = prompt("Enter RapidAPI key:")
+		localStorage.setItem('RapidAPIKey', RapidAPI)
+
+	}
+	config.rapidAPI.key = localStorage.getItem('RapidAPIKey')
+
 	// Search area for ADSB-Exchange
 	// Uses: https://github.com/smithmicro/mapbox-gl-circle/
 	new MapboxCircle({lat: config.centre.lat, lng: config.centre.lng}, config.search.radius, {
@@ -304,7 +329,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 		drawTracks(true)
 
 		// Start fetching data
-		await fetchADSB()
+		await fetchAndRender()
 
 	})
 
@@ -317,10 +342,15 @@ document.addEventListener("DOMContentLoaded", async () => {
 	})
 
 
-	// Trigger a search manually
+	// Buttons
 	document.querySelector('.clear-storage').addEventListener('click', async (e) => {
 		e.preventDefault()
 		clearStorageAndTracks()
+	})
+	document.querySelector('.clear-api-key').addEventListener('click', async (e) => {
+		e.preventDefault()
+		localStorage.removeItem('RapidAPIKey')
+		location.reload()
 	})
 	
 })

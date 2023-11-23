@@ -3,7 +3,7 @@ html, body{
 	margin: 0;
 }
 a{
-	color:rgb(173, 244, 202);
+	color:rgb(145, 201, 239);
 }
 body{
 	background-color: rgb(19, 21, 20);
@@ -13,13 +13,17 @@ body{
 main{
 	max-width: 1200px;
 	width: 100%;
-	margin: 2em auto;
+	margin: 1em auto;
 }
 
 header{
 	display: flex;
 	justify-content: space-between;
 	align-items: center;
+}
+h1{
+	font-size: 1.8em;
+  	margin-top: 0.5em;
 }
 
 .mapbox-map{
@@ -41,4 +45,44 @@ header{
 }
 .marker_plane.is_intersect{
 	background-image: url(/assets/images/plane-orange.svg);
+}
+
+.stats{
+	display:flex;
+	width: 65%;
+	margin: 20px 0;
+}
+.stat{
+	/*border: 1px solid hsla(0, 0%, 100%, 50%);*/
+	border-bottom: 3px solid white;
+	flex-grow: 1;
+	margin-bottom: 10px;
+	padding: 0 0 8px 0;
+}
+.stat:not(:last-of-type){
+	margin-right: 25px;
+}
+.stat h2{
+	margin:0;
+	padding:0;
+	font-size: 3em;
+	font-family: 'Courier New', Courier, monospace;
+	font-weight: 800;
+}
+.stat p{
+	margin:-2px 0 0 0;
+	padding:0 0 3px 2px;
+}
+
+.is-incursion{
+	background: rgba(142, 85, 12, 0.76);
+	animation: 0.8s linear infinite alternate incursion-background;
+}
+
+@keyframes incursion-background {
+	from {background: rgba(142, 85, 12, 0.76);}
+	to {background: rgba(188, 152, 11, 0.76);}
+}
+.is-incursion h2, .is-incursion p{
+	margin-left: 10px;
 }
