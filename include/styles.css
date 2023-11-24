@@ -39,27 +39,49 @@ h1{
 	text-align: right;
 }
 
-.marker_plane{
+.marker_aircraft{
+	width:40px;
+	height:40px;
+	cursor: pointer;
+	z-index: 10;
+	position: relative;
+	background: none;
+	border-radius: 100%;
+}
+.marker_aircraft:hover{
+	background: rgba(255,255,255,0.2);
+}
+.marker_aircraft > i{
 	background-image: url(/assets/images/plane-white.svg);
-	width:100%;
-	height:100%;
 	background-size:100%;
+	width:30px;
+	height:30px;
+	left: 5px;
+	top: 5px;
+	position: absolute;
 }
-.marker_plane.is_intersect{
-	background-image: url(/assets/images/plane-orange.svg);
+.marker_aircraft.is_intersect{
+	background: rgba(188, 152, 11, 0.76);
+	animation: 0.4s linear infinite alternate aircraft-incursion;
 }
+
+@keyframes aircraft-incursion {
+	from {background: rgba(142, 85, 12, 0.76);}
+	to {background: rgba(188, 152, 11, 0.76);}
+}
+
+
 
 .stats{
 	display:flex;
-	width: 65%;
 	margin: 20px 0 10px;
 }
 .stat{
 	/*border: 1px solid hsla(0, 0%, 100%, 50%);*/
 	border-bottom: 1px solid white;
-	flex-grow: 1;
 	margin-bottom: 8px;
 	padding: 0 0 8px 0;
+	width: calc(60% / 3);
 }
 .stat:not(:last-of-type){
 	margin-right: 25px;
@@ -74,6 +96,9 @@ h1{
 .stat p{
 	margin:-2px 0 0 0;
 	padding:0 0 3px 2px;
+}
+
+.flight-data{
 }
 
 .is-incursion{

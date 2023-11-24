@@ -15,8 +15,8 @@ export default class{
 		activeFlights: []
 	}
 
-	// Reference array for all aircraft markers on screen
-	mapMarkers = []
+	// geoJSON for the aircraft markers
+	aircraftMarkers = []
 
 	// Mapbox map object
 	map = null
@@ -112,6 +112,35 @@ export default class{
 			// Draw existing data from storage
 			// TODO: Draw the active tracks as well
 			this.addLoggedTracks()
+
+			// Add hover effects
+			this.map.on('mouseenter', 'loggedTracks', (e) => {
+				// Change the cursor style as a UI indicator.
+				this.map.getCanvas().style.cursor = 'pointer'
+
+				/*
+				 
+				// Copy coordinates array.
+				const coordinates = e.features[0].geometry.coordinates.slice();
+				const description = e.features[0].properties.description;
+				 
+				// Ensure that if the map is zoomed out such that multiple
+				// copies of the feature are visible, the popup appears
+				// over the copy being pointed to.
+				while (Math.abs(e.lngLat.lng - coordinates[0]) > 180) {
+				coordinates[0] += e.lngLat.lng > coordinates[0] ? 360 : -360;
+				}
+				 
+				// Populate the popup and set its coordinates
+				// based on the feature found.
+				popup.setLngLat(coordinates).setHTML(description).addTo(map);*/
+			});
+				 
+			this.map.on('mouseleave', 'loggedTracks', () => {
+				this.map.getCanvas().style.cursor = ''
+			//	popup.remove();
+			});
+
 
 			// Start fetching data
 			await this.fetchAndRender()
@@ -280,6 +309,7 @@ export default class{
 						hex: aircraft.hex,
 						flightName: flightName,
 						lastData: requestTime,
+						intersects: false,
 						entries: [],
 						geoJSON: {
 							type: "Feature",
@@ -299,22 +329,26 @@ export default class{
 					this.trackedData.activeFlights.push(newActiveFlight)
 
 					// Create a new flight track
-					this.addActiveFlightLayerToMap(newActiveFlight)
+					this.addActiveFlightToMap(newActiveFlight)
 				}
 
-				// Now for each active flight, update with latest data
+				// Update track with latest data
 				const flight = this.trackedData.activeFlights.find(flight => flight.hex == aircraft.hex)
 				flight.entries.push({lat: aircraft.lat, lng: aircraft.lon, heading: aircraft.track, alt_baro: aircraft.alt_baro, timestamp: requestTime})
 				flight.geoJSON.geometry.coordinates.push([aircraft.lon, aircraft.lat])
 				flight.geoJSON.properties.lastData = requestTime
 				flight.lastData = requestTime
 
+				// Check if it is inside the area!
+				flight.intersects = turf.booleanPointInPolygon([aircraft.lon, aircraft.lat], this.searchPoly)
 			}
 		}
 	}
 
-	// Create a new active track
-	addActiveFlightLayerToMap = (newActiveFlight) => {
+	// Create a new active track & marker
+	addActiveFlightToMap = (newActiveFlight) => {
+
+		// Add the new source and layer
 		this.map.addSource(newActiveFlight.uniqueID, {
 			type: 'geojson',
 			data: newActiveFlight.geoJSON
@@ -369,6 +403,14 @@ export default class{
 		this.options.dom.stats.logged.innerHTML = this.trackedData.loggedTracks.totalTracks
 	}
 
+	showFlightData = (data) => {
+		this.options.dom.flightData.innerHTML = data
+	}
+
+	clearFlightData = () => {
+		this.options.dom.flightData.innerHTML = ''
+	}
+
 
 	addLoggedTracks = () => {
 		this.map.addSource('loggedTracks', {
@@ -400,23 +442,33 @@ export default class{
 	drawTracks = () => {
 
 		// Clear all markers
-		this.mapMarkers.forEach((marker) => marker.remove())
-		this.mapMarkers = []
+		this.aircraftMarkers.forEach((marker) => marker.remove())
+		this.aircraftMarkers = []
 
-		let flightsToDraw = this.trackedData.activeFlights
-
-		for(let flight of flightsToDraw){
+		for(let flight of this.trackedData.activeFlights){
 
 			// Create markers dynamically on the fly
 			const marker_elem = document.createElement('div')
-			marker_elem.innerHTML = `<div class="marker_plane" style="transform:rotate(${flight.entries.at(-1).heading}deg)"></div>`
-			marker_elem.style.width = `30px`
-			marker_elem.style.height = `30px`
-			if(flight.entries.at(-1).alt_baro == 'ground'){
-				marker_elem.style.opacity = '0.3'
-			}
-			const marker = new mapboxgl.Marker(marker_elem).setLngLat([flight.entries.at(-1).lng, flight.entries.at(-1).lat]).addTo(this.map)
-			this.mapMarkers.push(marker)
+			marker_elem.innerHTML = '<i></i>'
+			marker_elem.classList.add('marker_aircraft')
+			if(flight.intersects) marker_elem.classList.add('is_intersect')
+
+			// Add new marker
+			const marker = new mapboxgl.Marker(marker_elem)
+				.setLngLat([flight.entries.at(-1).lng, flight.entries.at(-1).lat])
+				.setRotation(flight.entries.at(-1).heading)
+				.addTo(this.map)
+
+			// Save to array of markers
+			this.aircraftMarkers.push(marker)
+
+			// Add marker hover
+			marker.getElement().addEventListener('mouseenter', (e) => {
+				this.showFlightData(`Flight hex: ${String(flight.hex).toUpperCase()}, flight: ${flight.flightName}`)
+			})
+			marker.getElement().addEventListener('mouseleave', (e) => {
+				this.clearFlightData()
+			})
 			
 			// Update the track data
 			this.map.getSource(flight.uniqueID).setData(flight.geoJSON)
@@ -448,7 +500,7 @@ export default class{
 			this.trackedData = JSON.parse(localStorage.getItem('trackedData'))
 			// TODO: Move this bit somewhere else
 			for(let flight of this.trackedData.activeFlights){
-				this.addActiveFlightLayerToMap(flight)
+				this.addActiveFlightToMap(flight)
 			}
 		}
 	}

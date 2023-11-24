@@ -14,6 +14,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 		intersect_area: '/data/tda-single.geojson',
 		dom: {
 			mapbox: document.querySelector('.mapbox-map'),
+			flightData: document.querySelector('.flight-data'),
 			stats: {
 				active: 		document.querySelector('.stat-active'),
 				incursions: document.querySelector('.stat-incursions'),
