@@ -113,32 +113,14 @@ export default class{
 			// TODO: Draw the active tracks as well
 			this.addLoggedTracks()
 
-			// Add hover effects
-			this.map.on('mouseenter', 'loggedTracks', (e) => {
+			// Add hover effects to incursions
+			// TODO: Finish up this styling
+			this.map.on('mouseenter', 'incursionTracks', (e) => {
 				// Change the cursor style as a UI indicator.
 				this.map.getCanvas().style.cursor = 'pointer'
-
-				/*
-				 
-				// Copy coordinates array.
-				const coordinates = e.features[0].geometry.coordinates.slice();
-				const description = e.features[0].properties.description;
-				 
-				// Ensure that if the map is zoomed out such that multiple
-				// copies of the feature are visible, the popup appears
-				// over the copy being pointed to.
-				while (Math.abs(e.lngLat.lng - coordinates[0]) > 180) {
-				coordinates[0] += e.lngLat.lng > coordinates[0] ? 360 : -360;
-				}
-				 
-				// Populate the popup and set its coordinates
-				// based on the feature found.
-				popup.setLngLat(coordinates).setHTML(description).addTo(map);*/
 			});
-				 
-			this.map.on('mouseleave', 'loggedTracks', () => {
+			this.map.on('mouseleave', 'incursionTracks', () => {
 				this.map.getCanvas().style.cursor = ''
-			//	popup.remove();
 			});
 
 
@@ -179,66 +161,6 @@ export default class{
 			}
 		})
 	}
-
-
-
-
-	// Interection check
-	/*
-	let active = this.trackedData.flights.filter(flight => flight.is_active)
-
-			const generateRandomString = () => {
-				return Math.floor(Math.random() * Date.now()).toString(36);
-			};
-
-			for(let flight of active){
-				if(flight.coordinates.length > 1){
-
-					const line = {
-						"type": "Feature",
-						"properties": {},
-						"geometry": {
-							'type': 'LineString',
-							"coordinates": flight.coordinates
-						}
-					}
-
-
-					let intersectionPoints = turf.lineIntersect(line, this.searchPoly)
-					let intersectionPointsArray = intersectionPoints.features.map(d => {return d.geometry.coordinates})
-
-					if(intersectionPointsArray.length > 0){
-						let intersection = turf.lineSlice(turf.point(intersectionPointsArray[0]), turf.point(intersectionPointsArray[1]), line);
-
-						console.log(flight.flightName, `${Math.round(turf.length(turf.lineString(flight.coordinates)))}km`)
-						console.log(intersection)
-
-						const sourceName = generateRandomString()
-
-						this.map.addSource(sourceName, {
-							'type': 'geojson',
-							'data': intersection
-						})
-						this.map.addLayer({
-							'id': sourceName,
-							'type': 'line',
-							'source': sourceName,
-							'layout': {
-								'line-join': 'round',
-								'line-cap': 'round'
-							},
-							'paint': {
-								'line-color': `red`,
-								'line-width': 6,
-								'line-blur': 0
-							}
-						})
-					}
-				}
-			}
-
-
-	*/
 
 
 	// **********************************************************
@@ -341,6 +263,7 @@ export default class{
 
 				// Check if it is inside the area!
 				flight.intersects = turf.booleanPointInPolygon([aircraft.lon, aircraft.lat], this.searchPoly)
+				// TODO: Start saving to a new 'incursion' path if it is inside the intersect area!
 			}
 		}
 	}
@@ -398,9 +321,15 @@ export default class{
 	}
 
 	updateStats = () => {
+
+		// Update numbers
 		this.options.dom.stats.active.innerHTML = this.trackedData.activeFlights.length
 		this.options.dom.stats.incursions.innerHTML = '0'
 		this.options.dom.stats.logged.innerHTML = this.trackedData.loggedTracks.totalTracks
+
+		// Add styling for current incursion
+		const incursions = this.trackedData.activeFlights.reduce((total, flight) => total | flight.intersects, false)
+		this.options.dom.stats.incursions.parentNode.classList.toggle('is-incursion',incursions)
 	}
 
 	showFlightData = (data) => {

@@ -103,7 +103,7 @@ h1{
 
 .is-incursion{
 	background: rgba(142, 85, 12, 0.76);
-	animation: 0.8s linear infinite alternate incursion-background;
+	animation: 0.4s linear infinite alternate incursion-background;
 }
 
 @keyframes incursion-background {
