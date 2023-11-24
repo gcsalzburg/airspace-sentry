@@ -4,7 +4,13 @@ export default class{
 	// Master object that contains all the data we've tracked
 	trackedData = {
 		lastData: 0,
-		loggedTracks: [],
+		loggedTracks: {
+			totalTracks : 0,
+			geoJSON: {
+				type: "FeatureCollection",
+				features: []
+			}					
+		},
 		incursionTracks: [],
 		activeFlights: []
 	}
@@ -105,7 +111,7 @@ export default class{
 
 			// Draw existing data from storage
 			// TODO: Draw the active tracks as well
-			this.drawLoggedTracks()
+			this.addLoggedTracks()
 
 			// Start fetching data
 			await this.fetchAndRender()
@@ -231,6 +237,7 @@ export default class{
 		}, this.options.fetch.interval*1000)
 		this.options.fetch.nextFetch = Date.now()/1000 + this.options.fetch.interval
 	}
+
 	// **********************************************************
 	// Fetch data
 	// Grab new update of data from ADSB Exchange via RapidAPI
@@ -331,29 +338,62 @@ export default class{
 	// Set any active flights to inactive if we have no new data from them
 	checkForCompletedFlights = () => {
 
-		const staleFlights = this.trackedData.activeFlights.filter(flight => flight.lastData < (this.trackedData.lastData+(2*this.options.fetch.interval)))
+		const staleFlights = this.trackedData.activeFlights.filter(flight => flight.lastData+(2*this.options.fetch.interval) < this.trackedData.lastData)
 
 		for(let flight of staleFlights){
 
-			// TODO: Move this geoJSON to the loggedTracks / incursionTracks sections
+			// Add this to loggedTracks now
+			this.trackedData.loggedTracks.geoJSON.features.push(flight.geoJSON)
+			this.trackedData.loggedTracks.totalTracks++
 
-			// TODO: Remove the track from the map
+			// Remove the layer and source from the map
+			this.map.removeLayer(flight.uniqueID)
+			this.map.removeSource(flight.uniqueID)
+
+			// Remove from the activeFlights array
+			const index = this.trackedData.activeFlights.indexOf(flight)
+			if (index > -1) {
+				this.trackedData.activeFlights.splice(index, 1)
+			}
+
 		}
+
+		// Update loggedTracks render
+		this.drawLoggedTracks()
+
 	}
 
 	updateStats = () => {
 		this.options.dom.stats.active.innerHTML = this.trackedData.activeFlights.length
 		this.options.dom.stats.incursions.innerHTML = '0'
-		this.options.dom.stats.logged.innerHTML = this.trackedData.loggedTracks.length
+		this.options.dom.stats.logged.innerHTML = this.trackedData.loggedTracks.totalTracks
 	}
 
-	// Draws just the logged tracks
+
+	addLoggedTracks = () => {
+		this.map.addSource('loggedTracks', {
+			type: 'geojson',
+			data: this.trackedData.loggedTracks.geoJSON
+		})
+		this.map.addLayer({
+			'id': 'loggedTracks',
+			'type': 'line',
+			'source': 'loggedTracks',
+			'layout': {
+				'line-join': 'round',
+				'line-cap': 'round'
+			},
+			'paint': {
+				'line-color': `${this.options.styles.colours.trackInactive}`,
+				'line-width': 2,
+				'line-blur': 0
+			}
+		})
+	}
+
+	// Updates data for logged tracks
 	drawLoggedTracks = () => {
-		
-		let tracksToDraw = this.trackedData.loggedTracks
-
-		// TODO: Draw a single multi-feature LineString collection here
-
+		this.map.getSource('loggedTracks').setData(this.trackedData.loggedTracks.geoJSON)
 	}
 	
 
