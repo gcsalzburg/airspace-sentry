@@ -11,7 +11,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 	const	sentry = new Sentry({
 		debug: true,
 		mapbox_token: 'pk.eyJ1IjoiZ2NzYWx6YnVyZyIsImEiOiJjam1pNm5uZmcwMXNyM3FtNGp6dTY3MGxsIn0.PmLPkI3T8UxjEIPnz7fxEA',
+		intersect_area: '/data/tda-single.geojson',
 		dom: {
+			mapbox: document.querySelector('.mapbox-map'),
 			stats: {
 				active: 		document.querySelector('.stat-active'),
 				incursions: document.querySelector('.stat-incursions'),
