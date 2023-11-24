@@ -1,20 +1,27 @@
 
 export default class{
-		
-
-
+	
+	// Master object that contains all the data we've tracked
 	trackedData = {
-		flights: []
+		lastData: 0,
+		loggedTracks: [],
+		incursionTracks: [],
+		activeFlights: []
 	}
 
+	// Reference array for all aircraft markers on screen
 	mapMarkers = []
 
+	// Mapbox map object
 	map = null
+
+	// Search area for incursions
+	searchPoly = null
 
 	// Default options are below
 	options = {
 		debug: false,
-		show_search_area: true,
+		show_data_circle: true,
 		centre: {
 			lng: -1.966238,
 			lat: 55.055068,
@@ -30,6 +37,7 @@ export default class{
 			host: 'adsbexchange-com1.p.rapidapi.com'
 		},
 		mapbox_token: '',
+		mapbox_style: 'mapbox://styles/gcsalzburg/cjmn85as2dzu12rpkmaw53hsj',
 		fetch: {
 			interval: 5,
 			nextFetch: 0
@@ -62,177 +70,91 @@ export default class{
 		this.loadAPIKey()
 
 		// Load Mapbox Map
-		this.initMap()
+		this.initSentry()
 	}
 
-	// Loads the Mapbox Map onto the screen
-	initMap = () => {
+	// Start the Sentry
+	initSentry = async () => {
+
+		// Load the Mapbox map
 		this.map = new mapboxgl.Map({
 			accessToken: this.options.mapbox_token,
 			container: this.options.dom.mapbox,
-			style: 'mapbox://styles/gcsalzburg/cjmn85as2dzu12rpkmaw53hsj', // style URL // TODO: Reduce dominance of underlying roads
+			style: this.options.mapbox_style, // style URL // TODO: Reduce dominance of underlying roads
 			center: [this.options.centre.lng, this.options.centre.lat], // starting position [lng, lat]
 			zoom: this.options.centre.zoom, // starting zoom
 		})
 
+
+		// Load in search area polygon from file
+		this.searchPoly = await fetch(this.options.intersect_area).then(response => response.json()).catch(err => `Error loading search area: ${err}`)
+
+		// Once the map has loaded
 		this.map.on('load', async () => {
 
-			// Render the search area circle
-			if(this.options.show_search_area){
-				this.initSearchCircle()
+			// Render the data fetch request circle
+			if(this.options.show_data_circle){
+				this.initDataCircle()
 			}
 
-			// Draw TDA on map
-			this.initTDAArea()
+			// Load previously saved data from memory
+			this.fetchTrackedDataFromStorage()
 
-			// Do initial load from memory
-			// Fetch tracks from storage
-			this.fetchTracksFromStorage()
-			this.drawTracks(true)
+			// Draw the search area on the map
+			this.initSearchArea()
 
-			let active = this.trackedData.flights.filter(flight => flight.is_active)
+			// Draw existing data from storage
+			// TODO: Draw the active tracks as well
+			this.drawLoggedTracks()
 
-			let poly = {
-				"type": "Feature",
-				"properties": {
-					"title": "TDA"
-				},
-				"geometry": {
-					"type": "Polygon",
-					  "coordinates": [
-						[
-							[
-							-1.4427749824570526,
-							55.03666699298756
-							],
-							[
-							-1.4955827905671981,
-							55.09637250073129
-							],
-							[
-							-1.5352719611563828,
-							55.16388379944456
-							],
-							[
-							-1.5197048150083958,
-							55.16444325350494
-							],
-							[
-							-1.5033278668267087,
-							55.18305197880679
-							],
-							[
-							-1.5380412407720598,
-							55.223607556575644
-							],
-							[
-							-1.706369610068009,
-							55.182496100338994
-							],
-							[
-							-1.8730037701936055,
-							55.174172444866855
-							],
-							[
-							-1.9727121467176687,
-							55.15722098044
-							],
-							[
-							-2.0433033100974,
-							55.0944296461638
-							],
-							[
-							-2.1447121295533975,
-							55.045003609561775
-							],
-							[
-							-2.199156291344991,
-							55.00584565009811
-							],
-							[
-							-2.2402760246860396,
-							54.98556402322299
-							],
-							[
-							-2.317038461008167,
-							54.986665192125116
-							],
-							[
-							-2.411922829835902,
-							54.97805483658715
-							],
-							[
-							-2.482773582844004,
-							54.97805085523365
-							],
-							[
-							-2.4802719433423874,
-							54.95203252024447
-							],
-							[
-							-2.314832056392987,
-							54.9591712399035
-							],
-							[
-							-2.223339251913899,
-							54.95916982512691
-							],
-							[
-							-2.176653525537944,
-							54.96333784311261
-							],
-							[
-							-2.068327158664232,
-							54.96305154922277
-							],
-							[
-							-2.0699999586368847,
-							54.98666920940221
-							],
-							[
-							-2.131353328019827,
-							54.9941636377049
-							],
-							[
-							-2.1316525001414277,
-							55.00999541894208
-							],
-							[
-							-2.090243847926331,
-							55.03832546351302
-							],
-							[
-							-2.0139011536668363,
-							55.07083435765955
-							],
-							[
-							-1.9572199605691196,
-							55.12445139145797
-							],
-							[
-							-1.9258165787864243,
-							55.129722632615
-							],
-							[
-							-1.7088897369884535,
-							55.143054312359766
-							],
-							[
-							-1.5311137372165433,
-							55.009721847519984
-							],
-							[
-							-1.4427749824570526,
-							55.03666699298756
-							]
-						]
-					  ]
-				}
-			 }
+			// Start fetching data
+			await this.fetchAndRender()
+	
+		})
+	}
 
-			 const generateRandomString = () => {
+	// Draws a circle to show the search area for ADSB-Exchange
+	// Uses: https://github.com/smithmicro/mapbox-gl-circle/
+	initDataCircle = () => {
+		new MapboxCircle({lat: this.options.centre.lat, lng: this.options.centre.lng}, this.options.search.radius, {
+			editable: false,
+			fillColor: `${this.options.styles.colours.searchArea}`,
+			fillOpacity: 0.05,
+			strokeWeight: 0,
+		}).addTo(this.map)
+	}
+
+	// Draw the search area onto the map
+	initSearchArea = () => {
+		// Add a data source containing GeoJSON data.
+		this.map.addSource('searchArea', {
+			'type': 'geojson',
+			'data': this.searchPoly
+		})
+		
+		// Add a new layer to visualize the polygon.
+		this.map.addLayer({
+			'id': 'searchArea',
+			'type': 'fill',
+			'source': 'searchArea', // reference the data source
+			'layout': {},
+			'paint': {
+				'fill-color': `${this.options.styles.colours.tda}`,
+				'fill-opacity': 0.7
+			}
+		})
+	}
+
+
+
+
+	// Interection check
+	/*
+	let active = this.trackedData.flights.filter(flight => flight.is_active)
+
+			const generateRandomString = () => {
 				return Math.floor(Math.random() * Date.now()).toString(36);
-			 };
+			};
 
 			for(let flight of active){
 				if(flight.coordinates.length > 1){
@@ -247,7 +169,7 @@ export default class{
 					}
 
 
-					let intersectionPoints = turf.lineIntersect(line, poly)
+					let intersectionPoints = turf.lineIntersect(line, this.searchPoly)
 					let intersectionPointsArray = intersectionPoints.features.map(d => {return d.geometry.coordinates})
 
 					if(intersectionPointsArray.length > 0){
@@ -277,68 +199,30 @@ export default class{
 							}
 						})
 					}
-				//	L.geoJSON(intersectionPoints).addTo(map);
-					
-					
-					
-				//	let intersection = turf.lineSlice(turf.point(intersectionPointsArray[0]), turf.point(intersectionPointsArray[1]), line);
-					
-				//	L.geoJSON(intersection).addTo(map);
-
-
-
-
-
-
-
-				//	flight.coordinates.forEach(part => {
-				//		let split = turf.lineSplit(turf.lineString(part), poly)
-				//		let oddPair
-					//	if(turf.booleanPointInPolygon(turf.point(part[0]), poly)){
-					//		oddPair = 0
-					//	} else {
-					//		oddPair = 1
-					//	}
-					//	split.features.forEach((splitedPart, i) => {
-						//	if((i + oddPair)%2 === 0) {
-						//		console.log(splitedPart.geometry)
-							//	L.geoJSON(splitedPart.geometry).addTo(map);
-						//	}
-					//	})
-				//	})
 				}
 			}
 
-			// Start fetching data
-			//await this.fetchAndRender()
-	
-		})
-	}
 
-	// Draws a circle to show the search area for ADSB-Exchange
-	// Uses: https://github.com/smithmicro/mapbox-gl-circle/
-	initSearchCircle = () => {
-		new MapboxCircle({lat: this.options.centre.lat, lng: this.options.centre.lng}, this.options.search.radius, {
-			editable: false,
-			fillColor: `${this.options.styles.colours.searchArea}`,
-			fillOpacity: 0.05,
-			strokeWeight: 0,
-		}).addTo(this.map)
-	}
+	*/
 
-	
+
+	// **********************************************************
+
 	fetchAndRender = async () => {
 
-		// Grab new data from ADSB
-		this.fetchADSB()
+		// Fetch new data from ADSB and update trackedData.activeFlights with it
+		await this.fetchADSB()
 
-		// Check for intersections on the active lines only
-		//	https://gist.github.com/rveciana/e0565ca3bfcebedb12bbc2d4edb9b6b3
+		// Clean up completed flights from the map
+		this.checkForCompletedFlights()
+
+		// Update localStorage
+		this.saveTrackedDataToStorage(this.trackedData)
 
 		// Update stats
 		this.updateStats()
 
-		// Now draw them!
+		// Render the active Tracks
 		this.drawTracks()
 
 		// Fetch again!
@@ -347,32 +231,12 @@ export default class{
 		}, this.options.fetch.interval*1000)
 		this.options.fetch.nextFetch = Date.now()/1000 + this.options.fetch.interval
 	}
-
-
-	initTDAArea = () => {
-		// Add a data source containing GeoJSON data.
-		this.map.addSource('northumbria-tda', {
-			'type': 'geojson',
-			'data': this.options.intersect_area
-		})
-		
-		// Add a new layer to visualize the polygon.
-		this.map.addLayer({
-			'id': 'northumbria-tda',
-			'type': 'fill',
-			'source': 'northumbria-tda', // reference the data source
-			'layout': {},
-			'paint': {
-				'fill-color': `${this.options.styles.colours.tda}`,
-				'fill-opacity': 0.7
-			}
-		})
-	}
-
 	// **********************************************************
 	// Fetch data
 	// Grab new update of data from ADSB Exchange via RapidAPI
 	fetchADSB = async () => {
+
+		// Fetch data from ADSB Exchange
 		const url = `https://adsbexchange-com1.p.rapidapi.com/v2/lat/${this.options.centre.lat}/lon/${this.options.centre.lng}/dist/${this.options.search.radius * this.options.search.ratio}/`;
 		const options = {
 			method: 'GET',
@@ -380,126 +244,142 @@ export default class{
 				'X-RapidAPI-Key': this.options.rapidAPI.key,
 				'X-RapidAPI-Host': this.options.rapidAPI.host
 			}
-		};
-
-		let resultJSON = null
-
-		try {
-			const response = await fetch(url, options)
-			const result = await response.text()
-			resultJSON = JSON.parse(result)
-		} catch (error) {
-			console.error(error)
 		}
+		const newFlightData = await fetch(url, options).then(response => response.json()).catch(err => console.log(err))
 
-		if(resultJSON){
+		if(newFlightData){
+
+			const requestTime = newFlightData.now // TODO: Check if this is the correct time measurement to use
+			this.trackedData.lastData = requestTime
+
+			const flights = newFlightData.ac.filter(flight => flight.alt_baro != 'ground') // Only aircraft that are in the air please
 
 			let activeFlightHexes = []
 
-			// Save aircraft
-			for(let aircraft of resultJSON.ac){
+			// Iterate over each new aircraft
+			for(let aircraft of flights){
 
-				// Ignore flights on the ground
-				if(aircraft.alt_baro == 'ground') continue 
+				// If it doesn't exist in the activeFlights list, then create it. Check if based on the aircraft.hex only
+				if(!this.trackedData.activeFlights.find(flight => (flight.hex == aircraft.hex))){
 
-				// Generate unique-enough ID for this data source on the map
-				const mapSourceID = `${aircraft.hex}-${Date.now()}`
-			
-				// If flight doesn't yet exist. Need a better check for this!
-				if(!this.trackedData.flights.find(flight => (flight.hex == aircraft.hex && flight.is_active))){
+					// Generate unique-enough ID for this new flight
+					const uniqueID = `${aircraft.hex}-${Date.now()}`
 
-					// Create new log entry
-					this.trackedData.flights.push({
+					// Tidy up flightname
+					const flightName = (aircraft.flight ?? '').trim()
+
+					// Create new active flight entry
+					const newActiveFlight = {
 						hex: aircraft.hex,
-						flightName: (aircraft.flight ?? '').trim(),
-						is_active: true,
+						flightName: flightName,
+						lastData: requestTime,
 						entries: [],
-						coordinates: [],
-						sourceID: mapSourceID
-					})
+						geoJSON: {
+							type: "Feature",
+							properties: { // We duplicate it here, as we will copy over the geoJSON into the loggedTracks feature collection later on
+								hex: aircraft.hex,
+								flightName: flightName,
+								firstData: requestTime,
+								lastData: requestTime
+							},
+							geometry: {
+								type: 'LineString',
+								coordinates: []
+							}
+						},
+						uniqueID: uniqueID
+					}
+					this.trackedData.activeFlights.push(newActiveFlight)
 
 					// Create a new flight track
-					this.createMapFlightTrackSource(mapSourceID)
+					this.addActiveFlightLayerToMap(newActiveFlight)
 				}
 
-				// Now push latest co-ordinates
-				const flight = this.trackedData.flights.find(flight => (flight.hex == aircraft.hex && flight.is_active))
-				flight.entries.push({lat: aircraft.lat, lng: aircraft.lon, heading: aircraft.track, alt_baro: aircraft.alt_baro})
-				flight.coordinates.push([aircraft.lon, aircraft.lat])
-
-				activeFlightHexes.push(aircraft.hex)
+				// Now for each active flight, update with latest data
+				const flight = this.trackedData.activeFlights.find(flight => flight.hex == aircraft.hex)
+				flight.entries.push({lat: aircraft.lat, lng: aircraft.lon, heading: aircraft.track, alt_baro: aircraft.alt_baro, timestamp: requestTime})
+				flight.geoJSON.geometry.coordinates.push([aircraft.lon, aircraft.lat])
+				flight.geoJSON.properties.lastData = requestTime
+				flight.lastData = requestTime
 
 			}
-
-			// Set any active flights to inactive if we have no new data from them
-			// TODO: Should be no new data within last x seconds, in case we miss a measurement one time
-			const activeFlights = this.trackedData.flights.filter(flight => flight.is_active)
-			for(let flight of activeFlights){
-				if(!activeFlightHexes.includes(flight.hex)){
-
-					// Set to inactive
-					flight.is_active = false
-
-					// Set colour of this line to faded out
-					this.map.setPaintProperty(flight.sourceID, 'line-color', `${this.options.styles.colours.trackInactive}`)
-				}
-			}
-
-			// Update localStorage
-			this.saveTracksToStorage(this.trackedData)
-
 		}
 	}
 
+	// Create a new active track
+	addActiveFlightLayerToMap = (newActiveFlight) => {
+		this.map.addSource(newActiveFlight.uniqueID, {
+			type: 'geojson',
+			data: newActiveFlight.geoJSON
+		})
+		this.map.addLayer({
+			'id': newActiveFlight.uniqueID,
+			'type': 'line',
+			'source': newActiveFlight.uniqueID,
+			'layout': {
+				'line-join': 'round',
+				'line-cap': 'round'
+			},
+			'paint': {
+				'line-color': `${this.options.styles.colours.trackActive}`,
+				'line-width': 2,
+				'line-blur': 0
+			}
+		})
+	}
 
+	// Set any active flights to inactive if we have no new data from them
+	checkForCompletedFlights = () => {
+
+		const staleFlights = this.trackedData.activeFlights.filter(flight => flight.lastData < (this.trackedData.lastData+(2*this.options.fetch.interval)))
+
+		for(let flight of staleFlights){
+
+			// TODO: Move this geoJSON to the loggedTracks / incursionTracks sections
+
+			// TODO: Remove the track from the map
+		}
+	}
 
 	updateStats = () => {
-		this.options.dom.stats.active.innerHTML = this.trackedData.flights.filter(flight => flight.is_active).length
+		this.options.dom.stats.active.innerHTML = this.trackedData.activeFlights.length
 		this.options.dom.stats.incursions.innerHTML = '0'
-		this.options.dom.stats.logged.innerHTML = this.trackedData.flights.length
+		this.options.dom.stats.logged.innerHTML = this.trackedData.loggedTracks.length
+	}
+
+	// Draws just the logged tracks
+	drawLoggedTracks = () => {
+		
+		let tracksToDraw = this.trackedData.loggedTracks
+
+		// TODO: Draw a single multi-feature LineString collection here
+
 	}
 	
 
-	drawTracks = (drawAll = false) => {
+	drawTracks = () => {
 
 		// Clear all markers
 		this.mapMarkers.forEach((marker) => marker.remove())
 		this.mapMarkers = []
 
-		let flightsToDraw = this.trackedData.flights
-		if(!drawAll){
-			flightsToDraw = flightsToDraw.filter(flight => flight.is_active)
-		}
+		let flightsToDraw = this.trackedData.activeFlights
 
 		for(let flight of flightsToDraw){
 
-			if(flight.is_active){
-				// Create markers dynamically on the fly
-				const marker_elem = document.createElement('div')
-				marker_elem.innerHTML = `<div class="marker_plane" style="transform:rotate(${flight.entries.at(-1).heading}deg)"></div>`
-				marker_elem.style.width = `30px`
-				marker_elem.style.height = `30px`
-				if(flight.entries.at(-1).alt_baro == 'ground'){
-					marker_elem.style.opacity = '0.3'
-				}
-				const marker = new mapboxgl.Marker(marker_elem).setLngLat([flight.entries.at(-1).lng, flight.entries.at(-1).lat]).addTo(this.map)
-				this.mapMarkers.push(marker)
+			// Create markers dynamically on the fly
+			const marker_elem = document.createElement('div')
+			marker_elem.innerHTML = `<div class="marker_plane" style="transform:rotate(${flight.entries.at(-1).heading}deg)"></div>`
+			marker_elem.style.width = `30px`
+			marker_elem.style.height = `30px`
+			if(flight.entries.at(-1).alt_baro == 'ground'){
+				marker_elem.style.opacity = '0.3'
 			}
+			const marker = new mapboxgl.Marker(marker_elem).setLngLat([flight.entries.at(-1).lng, flight.entries.at(-1).lat]).addTo(this.map)
+			this.mapMarkers.push(marker)
 			
 			// Update the track data
-			this.map.getSource(flight.sourceID).setData({
-				"type": "Feature",
-				"properties": {},
-				"geometry": {
-					'type': 'LineString',
-					"coordinates": flight.coordinates
-				}
-			})
-
-			if(!flight.is_active){
-				// Set colour of this line to faded out
-				this.map.setPaintProperty(flight.sourceID, 'line-color', `${this.options.styles.colours.trackInactive}`)
-			}
+			this.map.getSource(flight.uniqueID).setData(flight.geoJSON)
 		}
 	}
 
@@ -519,14 +399,17 @@ export default class{
 		location.reload()
 	}
 
-	saveTracksToStorage = (jsonData) => {
+	saveTrackedDataToStorage = (jsonData) => {
 		localStorage.setItem('trackedData', JSON.stringify(jsonData))
 	}
 
-	fetchTracksFromStorage = () => {
-		this.trackedData = JSON.parse(localStorage.getItem('trackedData'))
-		for(let flight of this.trackedData.flights){
-			this.createMapFlightTrackSource(flight.sourceID)
+	fetchTrackedDataFromStorage = () => {
+		if(localStorage.getItem('trackedData')){
+			this.trackedData = JSON.parse(localStorage.getItem('trackedData'))
+			// TODO: Move this bit somewhere else
+			for(let flight of this.trackedData.activeFlights){
+				this.addActiveFlightLayerToMap(flight)
+			}
 		}
 	}
 
@@ -540,32 +423,4 @@ export default class{
 
 	// **********************************************************
 
-	createMapFlightTrackSource = (sourceID) => {
-		// Create a new flight track
-		this.map.addSource(sourceID, {
-			'type': 'geojson',
-			'data': {
-				"type": "Feature",
-				"properties": {},
-				"geometry": {
-					'type': 'LineString',
-					"coordinates": []
-				}
-			}
-		})
-		this.map.addLayer({
-			'id': sourceID,
-			'type': 'line',
-			'source': sourceID,
-			'layout': {
-				'line-join': 'round',
-				'line-cap': 'round'
-			},
-			'paint': {
-				'line-color': `${this.options.styles.colours.trackActive}`,
-				'line-width': 2,
-				'line-blur': 0
-			}
-		})
-	}
 }
