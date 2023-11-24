@@ -101,6 +101,8 @@ export default class{
 			// Render the data fetch request circle
 			if(this.options.show_data_circle){
 				this.initDataCircle()
+				// TODO: Make circle size editable with the built in editable property
+				// TODO: Add hook to detect change and use that to define search size
 			}
 
 			// Load previously saved data from memory
@@ -203,6 +205,7 @@ export default class{
 				'X-RapidAPI-Host': this.options.rapidAPI.host
 			}
 		}
+		// TODO: Add better error check on this fetch
 		const newFlightData = await fetch(url, options).then(response => response.json()).catch(err => console.log(err))
 
 		if(newFlightData){
