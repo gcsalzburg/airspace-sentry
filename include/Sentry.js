@@ -11,7 +11,12 @@ export default class{
 				features: []
 			}					
 		},
-		incursionTracks: [],
+		incursionTracks: {
+			geoJSON: {
+				type: "FeatureCollection",
+				features: []
+			}					
+		},
 		activeFlights: []
 	}
 
@@ -101,8 +106,6 @@ export default class{
 			// Render the data fetch request circle
 			if(this.options.show_data_circle){
 				this.initDataCircle()
-				// TODO: Make circle size editable with the built in editable property
-				// TODO: Add hook to detect change and use that to define search size
 			}
 
 			// Load previously saved data from memory
@@ -112,17 +115,25 @@ export default class{
 			this.initSearchArea()
 
 			// Draw existing data from storage
-			// TODO: Draw the active tracks as well
 			this.addLoggedTracks()
+			this.addIncursionTracks()
+			this.drawTracks()
 
 			// Add hover effects to incursions
-			// TODO: Finish up this styling
 			this.map.on('mouseenter', 'incursionTracks', (e) => {
 				// Change the cursor style as a UI indicator.
 				this.map.getCanvas().style.cursor = 'pointer'
+				if (e.features.length > 0) {
+					const trackProperties = e.features.at(0).properties
+					const durationSeconds = Math.round((trackProperties.lastData - trackProperties.firstData)/1000)
+					let dataToShow = `Incursion from flight ${trackProperties.flightName} for ${durationSeconds}s`
+					if(trackProperties.isActive) dataToShow += `<br>Incursion ongoing`
+					this.showFlightData(dataToShow)
+				}
 			});
 			this.map.on('mouseleave', 'incursionTracks', () => {
 				this.map.getCanvas().style.cursor = ''
+				this.clearFlightData()
 			});
 
 
@@ -133,6 +144,7 @@ export default class{
 	}
 
 	// Draws a circle to show the search area for ADSB-Exchange
+	// TODO: Make editable
 	// Uses: https://github.com/smithmicro/mapbox-gl-circle/
 	initDataCircle = () => {
 		new MapboxCircle({lat: this.options.centre.lat, lng: this.options.centre.lng}, this.options.search.radius, {
@@ -174,6 +186,7 @@ export default class{
 
 		// Clean up completed flights from the map
 		this.checkForCompletedFlights()
+		this.checkForCompletedIncursions()
 
 		// Update localStorage
 		this.saveTrackedDataToStorage(this.trackedData)
@@ -182,6 +195,7 @@ export default class{
 		this.updateStats()
 
 		// Render the active Tracks
+		this.drawIncursionTracks()
 		this.drawTracks()
 
 		// Fetch again!
@@ -208,68 +222,108 @@ export default class{
 		// TODO: Add better error check on this fetch
 		const newFlightData = await fetch(url, options).then(response => response.json()).catch(err => console.log(err))
 
-		if(newFlightData){
+		if(!newFlightData) return // Fetch failed?
+		if(!newFlightData.ac) return // Could be that API was unreachable 
 
-			const requestTime = newFlightData.now // TODO: Check if this is the correct time measurement to use
-			this.trackedData.lastData = requestTime
 
-			const flights = newFlightData.ac.filter(flight => flight.alt_baro != 'ground') // Only aircraft that are in the air please
+		const requestTime = newFlightData.now // TODO: Check if this is the correct time measurement to use
+		this.trackedData.lastData = requestTime
 
-			let activeFlightHexes = []
+		const flights = newFlightData.ac.filter(flight => flight.alt_baro != 'ground') // Only aircraft that are in the air please
 
-			// Iterate over each new aircraft
-			for(let aircraft of flights){
+		// Iterate over each new aircraft
+		for(let aircraft of flights){
 
-				// If it doesn't exist in the activeFlights list, then create it. Check if based on the aircraft.hex only
-				if(!this.trackedData.activeFlights.find(flight => (flight.hex == aircraft.hex))){
+			// If it doesn't exist in the activeFlights list, then create it. Check if based on the aircraft.hex only
+			if(!this.trackedData.activeFlights.find(flight => (flight.hex == aircraft.hex))){
 
-					// Generate unique-enough ID for this new flight
-					const uniqueID = `${aircraft.hex}-${Date.now()}`
+				// Generate unique-enough ID for this new flight
+				const uniqueID = `${aircraft.hex}-${Date.now()}`
 
-					// Tidy up flightname
-					const flightName = (aircraft.flight ?? '').trim()
+				// Tidy up flightname
+				const flightName = (aircraft.flight ?? '').trim()
 
-					// Create new active flight entry
-					const newActiveFlight = {
-						hex: aircraft.hex,
-						flightName: flightName,
-						lastData: requestTime,
-						intersects: false,
-						entries: [],
-						geoJSON: {
-							type: "Feature",
-							properties: { // We duplicate it here, as we will copy over the geoJSON into the loggedTracks feature collection later on
-								hex: aircraft.hex,
-								flightName: flightName,
-								firstData: requestTime,
-								lastData: requestTime
-							},
-							geometry: {
-								type: 'LineString',
-								coordinates: []
-							}
+				// Create new active flight entry
+				const newActiveFlight = {
+					hex: aircraft.hex,
+					flightName: flightName,
+					lastData: requestTime,
+					intersects: false,
+					entries: [],
+					geoJSON: {
+						type: "Feature",
+						properties: { // We duplicate it here, as we will copy over the geoJSON into the loggedTracks feature collection later on
+							uniqueID: uniqueID,
+							hex: aircraft.hex,
+							flightName: flightName,
+							firstData: requestTime,
+							lastData: requestTime
 						},
-						uniqueID: uniqueID
-					}
-					this.trackedData.activeFlights.push(newActiveFlight)
+						geometry: {
+							type: 'LineString',
+							coordinates: []
+						}
+					},
+					uniqueID: uniqueID
+				}
+				this.trackedData.activeFlights.push(newActiveFlight)
 
-					// Create a new flight track
-					this.addActiveFlightToMap(newActiveFlight)
+				// Create a new flight track
+				this.addActiveFlightToMap(newActiveFlight)
+			}
+
+			// Update track with latest data
+			const flight = this.trackedData.activeFlights.find(flight => flight.hex == aircraft.hex)
+			flight.entries.push({lat: aircraft.lat, lng: aircraft.lon, heading: aircraft.track, alt_baro: aircraft.alt_baro, timestamp: requestTime})
+			flight.geoJSON.geometry.coordinates.push([aircraft.lon, aircraft.lat])
+			flight.geoJSON.properties.lastData = requestTime
+			flight.lastData = requestTime
+
+			// Check if it is inside the area!
+			flight.intersects = turf.booleanPointInPolygon([aircraft.lon, aircraft.lat], this.searchPoly)
+
+			if(flight.intersects){
+
+				// If the incursion isn't being logged right now
+				if(!this.trackedData.incursionTracks.geoJSON.features.find(track => ((track.properties.uniqueID == flight.uniqueID) && track.properties.isActive))){
+
+					// Create new entry in incursionTracks
+					const newIncursionTrackGeoJSON = {
+						type: "Feature",
+						properties: {
+							isActive: true,
+							uniqueID: flight.uniqueID,
+							hex: flight.hex,
+							flightName: flight.flightName,
+							firstData: requestTime,
+							lastData: requestTime
+						},
+						geometry: {
+							type: 'LineString',
+							coordinates: []
+						}
+					}
+					this.trackedData.incursionTracks.geoJSON.features.push(newIncursionTrackGeoJSON)
 				}
 
-				// Update track with latest data
-				const flight = this.trackedData.activeFlights.find(flight => flight.hex == aircraft.hex)
-				flight.entries.push({lat: aircraft.lat, lng: aircraft.lon, heading: aircraft.track, alt_baro: aircraft.alt_baro, timestamp: requestTime})
-				flight.geoJSON.geometry.coordinates.push([aircraft.lon, aircraft.lat])
-				flight.geoJSON.properties.lastData = requestTime
-				flight.lastData = requestTime
+				// Update incursion track with latest data
+				const incursionTrack = this.trackedData.incursionTracks.geoJSON.features.find(track => ((track.properties.uniqueID == flight.uniqueID) && track.properties.isActive))
+				incursionTrack.geometry.coordinates.push([aircraft.lon, aircraft.lat])
+				incursionTrack.properties.lastData = requestTime
 
-				// Check if it is inside the area!
-				flight.intersects = turf.booleanPointInPolygon([aircraft.lon, aircraft.lat], this.searchPoly)
-				// TODO: Start saving to a new 'incursion' path if it is inside the intersect area!
+			}else{
+
+				// If we had one we were logging, we can stop now 
+				const activeIncursionTrack = this.trackedData.incursionTracks.geoJSON.features.find(track => ((track.properties.uniqueID == flight.uniqueID) && track.properties.isActive))
+				if(activeIncursionTrack){
+					activeIncursionTrack.properties.isActive = false
+				}
+
 			}
 		}
 	}
+
+	// TODO: Show all altitudes on hover
 
 	// Create a new active track & marker
 	addActiveFlightToMap = (newActiveFlight) => {
@@ -323,11 +377,21 @@ export default class{
 
 	}
 
+	// Set any incursion tracks to inactive if we have no new data from them
+	checkForCompletedIncursions = () => {
+
+		const staleIncursions = this.trackedData.incursionTracks.geoJSON.features.filter(track => track.properties.lastData+(2*this.options.fetch.interval) < this.trackedData.lastData)
+
+		for(let track of staleIncursions){
+			track.properties.isActive = false
+		}
+	}
+
 	updateStats = () => {
 
 		// Update numbers
 		this.options.dom.stats.active.innerHTML = this.trackedData.activeFlights.length
-		this.options.dom.stats.incursions.innerHTML = '0'
+		this.options.dom.stats.incursions.innerHTML = this.trackedData.incursionTracks.geoJSON.features.length
 		this.options.dom.stats.logged.innerHTML = this.trackedData.loggedTracks.totalTracks
 
 		// Add styling for current incursion
@@ -343,6 +407,32 @@ export default class{
 		this.options.dom.flightData.innerHTML = ''
 	}
 
+
+	addIncursionTracks = () => {
+		this.map.addSource('incursionTracks', {
+			type: 'geojson',
+			data: this.trackedData.incursionTracks.geoJSON
+		})
+		this.map.addLayer({
+			'id': 'incursionTracks',
+			'type': 'line',
+			'source': 'incursionTracks',
+			'layout': {
+				'line-join': 'round',
+				'line-cap': 'round'
+			},
+			'paint': {
+				'line-color': `rgb(255,0,0)`,
+				'line-width': 4,
+				'line-blur': 0
+			}
+		})
+	}
+
+	// Updates data for logged tracks
+	drawIncursionTracks = () => {
+		this.map.getSource('incursionTracks').setData(this.trackedData.incursionTracks.geoJSON)
+	}
 
 	addLoggedTracks = () => {
 		this.map.addSource('loggedTracks', {
@@ -396,7 +486,7 @@ export default class{
 
 			// Add marker hover
 			marker.getElement().addEventListener('mouseenter', (e) => {
-				this.showFlightData(`Flight hex: ${String(flight.hex).toUpperCase()}, flight: ${flight.flightName}`)
+				this.showFlightData(`Flight hex: ${String(flight.hex).toUpperCase()}, flight: ${flight.flightName}<br>Altitude: ${flight.entries.at(-1).alt_baro}m`)
 			})
 			marker.getElement().addEventListener('mouseleave', (e) => {
 				this.clearFlightData()

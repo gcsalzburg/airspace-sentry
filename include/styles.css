@@ -97,6 +97,20 @@ h1{
 	margin:-2px 0 0 0;
 	padding:0 0 3px 2px;
 }
+.live-tag{
+	font-size: 0.6em;
+	display: inline-block;
+	background: rgb(30, 192, 93);
+	padding: 0.1em 0.2em;
+	border-radius: 3px;
+	color: black;
+	transform: translate(4px, -5px);
+	animation: 0.8s linear infinite alternate live-tag-background;
+}
+@keyframes live-tag-background {
+	from {background: rgb(30, 192, 93);}
+	to {background: rgb(128, 245, 173);}
+}
 
 .flight-data{
 }
