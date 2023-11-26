@@ -56,7 +56,7 @@ h1{
 	background: rgba(255,255,255,0.2);
 }
 .marker_aircraft > i{
-	background-image: url(/assets/images/plane-white.svg);
+	background-image: url(../assets/images/plane-white.svg);
 	background-size:100%;
 	width:30px;
 	height:30px;
