@@ -176,6 +176,7 @@ export default class{
 		})
 	}
 
+	// TODO: Make planes at high altitude faded out (or something)
 
 	// **********************************************************
 
