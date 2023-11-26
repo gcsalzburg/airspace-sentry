@@ -529,9 +529,7 @@ export default class{
 
 	clearStorageAndTracks = () => {
 		localStorage.removeItem('trackedData')
-		this.trackedData = {
-			flights: []
-		}
+		location.reload()
 	}
 
 
