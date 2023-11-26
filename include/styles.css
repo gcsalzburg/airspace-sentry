@@ -2,6 +2,10 @@ html, body{
 	font-family: 'Victor Mono', monospace;
 	margin: 0;
 }
+::selection {
+	background: rgb(128, 245, 173);
+	color: black;
+}
 a{
 	color:rgb(145, 201, 239);
 }
