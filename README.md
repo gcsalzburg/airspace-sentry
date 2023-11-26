@@ -10,3 +10,8 @@
 
 + Make planes at high altitude faded out (or something)
 + Show all altitudes on hover
++ Add .nojekyll
++ Add flight event incursion log below
++ Add better options
++ Add save/restore data, and also export geoJSON option
++ Add height limit checker
