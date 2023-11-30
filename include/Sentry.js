@@ -141,7 +141,6 @@ export default class{
 
 		// [0] Add the circle to show the search area for ADSB-Exchange
 		// Uses: https://github.com/smithmicro/mapbox-gl-circle/
-		// TODO: Make editable
 		const searchCircle = new MapboxCircle({lat: this.options.centre.lat, lng: this.options.centre.lng}, this.options.search.radius, {
 			editable: true,
 			fillColor: `${this.options.styles.colours.searchArea}`,
@@ -243,7 +242,8 @@ export default class{
 				const trackProperties = e.features.at(0).properties
 				const durationSeconds = Math.round((trackProperties.lastData - trackProperties.firstData)/1000)
 				let dataToShow = `Incursion from flight ${trackProperties.flightName} for ${durationSeconds}s`
-				if(trackProperties.isIncursionOngoing) dataToShow += `<br>Incursion ongoing`
+				const altitudes = JSON.parse(trackProperties.altitude)
+				dataToShow += `<br>(${altitudes.min}-${altitudes.max}m)`
 				this.showFlightData(dataToShow)
 			}
 		})
@@ -390,6 +390,7 @@ export default class{
 					newIncursionTrackGeoJSON.geometry.coordinates = []
 					newIncursionTrackGeoJSON.properties.isIncursionOngoing = true
 					newIncursionTrackGeoJSON.properties.firstData = requestTime
+					newIncursionTrackGeoJSON.properties.altitude = {min: 999999999999999, max: 0}
 
 					// Add it to the incursionTracks
 					this.trackedData.incursionTracks.features.push(newIncursionTrackGeoJSON)
@@ -398,6 +399,8 @@ export default class{
 				// Update incursion track with latest data
 				const incursionTrack = this.trackedData.incursionTracks.features.find(track => ((track.properties.id == flight.properties.id) && track.properties.isIncursionOngoing))
 				incursionTrack.geometry.coordinates.push([aircraft.lon, aircraft.lat])
+				incursionTrack.properties.altitude.min = Math.min(aircraft.alt_baro, incursionTrack.properties.altitude.min)
+				incursionTrack.properties.altitude.max = Math.max(aircraft.alt_baro, incursionTrack.properties.altitude.max)
 				incursionTrack.properties.lastData = requestTime
 
 			}else{
