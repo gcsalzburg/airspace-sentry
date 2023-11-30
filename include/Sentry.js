@@ -142,12 +142,27 @@ export default class{
 		// [0] Add the circle to show the search area for ADSB-Exchange
 		// Uses: https://github.com/smithmicro/mapbox-gl-circle/
 		// TODO: Make editable
-		new MapboxCircle({lat: this.options.centre.lat, lng: this.options.centre.lng}, this.options.search.radius, {
-			editable: false,
+		const searchCircle = new MapboxCircle({lat: this.options.centre.lat, lng: this.options.centre.lng}, this.options.search.radius, {
+			editable: true,
 			fillColor: `${this.options.styles.colours.searchArea}`,
 			fillOpacity: 0.05,
 			strokeWeight: 0,
+			maxRadius: 250/this.options.search.ratio
 		}).addTo(this.map)
+
+		searchCircle.on('centerchanged', (circleObj) => {
+			const newCentre = circleObj.getCenter()
+			this.options.centre.lat = newCentre.lat
+			this.options.centre.lng = newCentre.lng
+		})
+		searchCircle.on('radiuschanged', (circleObj) => {
+			try{
+				this.options.search.radius = circleObj.getRadius()
+			}catch{
+				
+			}
+		})
+
 
 		// [1] Add the incursionArea layer
 		this.map.addSource('incursionArea', {'type':'geojson', 'data':this.incursionArea})
@@ -375,8 +390,6 @@ export default class{
 					newIncursionTrackGeoJSON.geometry.coordinates = []
 					newIncursionTrackGeoJSON.properties.isIncursionOngoing = true
 					newIncursionTrackGeoJSON.properties.firstData = requestTime
-
-					console.log(newIncursionTrackGeoJSON)
 
 					// Add it to the incursionTracks
 					this.trackedData.incursionTracks.features.push(newIncursionTrackGeoJSON)
