@@ -58,11 +58,11 @@ export default class{
 		},
 		styles: {
 			colours: {
-				incursionArea: '#52dfff',
+				incursionArea: '#94a400', //'#52dfff',
 				searchArea: 'rgb(145, 201, 239)',
 				trackActive: 'rgb(128, 245, 173)',
 				trackInactive: 'rgba(255, 255, 255 ,0.3)',
-				trackIncursion: '#ff7918'
+				trackIncursion: '#ffd418', //'#ffffff'
 			}
 		}
 	}
@@ -106,6 +106,7 @@ export default class{
 
 		// Load in search area polygon from file
 		this.incursionArea = await fetch(this.options.intersect_area).then(response => response.json()).catch(err => `Error loading incursion area: ${err}`)
+		this.isIncursionAreaWithHeights()
 
 		// Once the map has loaded
 		this.map.on('load', async () => {
@@ -168,6 +169,22 @@ export default class{
 			}
 		})
 
+		this.map.on('mouseenter', 'incursionArea', (e) => {
+			this.map.getCanvas().style.cursor = 'pointer'
+			if (e.features.length > 0) {
+				if(e.features.at(0).properties.height){
+					const heights = JSON.parse(e.features.at(0).properties.height)
+					this.options.follower.set(`${e.features.at(0).properties.title}: ${heights[0]}-${heights[1]}m`)
+				}
+			}
+		})
+		this.map.on('mouseleave', 'incursionArea', () => {
+			// Clear hover effect
+			this.map.getCanvas().style.cursor = ''
+			this.options.follower.clear()
+		})
+		
+
 		// [2] Add logged tracks
 		this.map.addSource('loggedTracks', {type:'geojson', data:this.trackedData.loggedTracks, 'promoteId': "id"})
 		this.map.addLayer({
@@ -201,7 +218,13 @@ export default class{
 				'line-cap': 'round'
 			},
 			'paint': {
-				'line-color': this.options.styles.colours.trackIncursion,
+				//'line-color': this.options.styles.colours.trackIncursion,
+				'line-color': [
+					'case',
+					['boolean', ['feature-state', 'hover'], false],
+					'#ff6520',
+					this.options.styles.colours.trackIncursion
+				],
 				'line-width': [
 					'case',
 					['boolean', ['feature-state', 'hover'], false],
@@ -213,7 +236,7 @@ export default class{
 		})
 
 		// Add hover effects
-		// Add hover effects to incursions
+		// Add hover effects to incursion tracks
 		this.map.on('mouseenter', 'incursionTracks', (e) => {
 			this.map.getCanvas().style.cursor = 'pointer'
 			if (e.features.length > 0) {
@@ -233,10 +256,8 @@ export default class{
 
 				const trackProperties = e.features.at(0).properties
 				const durationSeconds = Math.round((trackProperties.lastData - trackProperties.firstData)/1000)
-				let dataToShow = `Incursion from flight ${trackProperties.flightName} for ${durationSeconds}s`
 				const altitudes = JSON.parse(trackProperties.altitude)
-				dataToShow += `<br>(${altitudes.min}-${altitudes.max}m)`
-				this.showFlightData(dataToShow)
+				this.options.follower.set(`Incursion from flight ${trackProperties.flightName} for ${durationSeconds}s<br>(${altitudes.min}-${altitudes.max}m)`)
 			}
 		})
 		this.map.on('mouseleave', 'incursionTracks', () => {
@@ -249,8 +270,8 @@ export default class{
 			}
 			this.hoveredIncursionTrack = null
 
-			this.map.getCanvas().style.cursor = ''
-			this.clearFlightData()
+			//this.map.getCanvas().style.cursor = ''
+			this.options.follower.clear()
 		})
 
 	}
@@ -369,10 +390,10 @@ export default class{
 
 		// Add marker hover
 		marker.getElement().addEventListener('mouseenter', (e) => {
-			this.showFlightData(`Flight hex: ${String(flight.properties.hex).toUpperCase()}, flight: ${flight.properties.flightName}<br>Altitude: ${flight.geometry.coordinates.at(-1)[2]}m`)
+			this.options.follower.set(`${flight.properties.flightName} (${String(flight.properties.hex).toUpperCase()}) - ${flight.geometry.coordinates.at(-1)[2]}m`)
 		})
 		marker.getElement().addEventListener('mouseleave', (e) => {
-			this.clearFlightData()
+			this.options.follower.clear()
 		})
 	}
 
@@ -479,7 +500,7 @@ export default class{
 	}
 
 	// **********************************************************
-	// Intersection checks
+	// Incursion area checks
 
 	// Checks if the point is inside the incursion area
 	isPointIncursion = (latlon, area) => {
@@ -498,6 +519,35 @@ export default class{
 		}
 
 		return false
+	}
+
+	isIncursionAreaWithHeights = () => {
+		console.log(this.incursionArea)
+		
+		if(this.incursionArea.type == 'FeatureCollection'){
+			// Multiple areas to check
+			for(let feature of this.incursionArea.features){
+
+				if(!this._checkForHeight(feature)) return false
+			}
+
+		}else if (this.incursionArea.type == 'Feature'){
+			// Single area
+			return this._checkForHeight(this.incursionArea)
+		}
+	}
+
+	_checkForHeight = (feature) => {
+		if(feature.properties.height){
+			const height = feature.properties.height
+			if(Array.isArray(height)){
+				if(height.length == 2){
+					if(height[1] >= height[0])
+					return true
+				}
+			}
+		}
+		console.log(`No height found for 1+ incursion region (${feature.properties.title})). Incursions may be calculated without heights.`)
 	}
 
 
@@ -584,14 +634,6 @@ export default class{
 		// Add styling for current incursion
 		const incursions = this.trackedData.activeFlights.reduce((total, flight) => total | flight.properties.intersects, false)
 		this.options.dom.stats.incursions.parentNode.classList.toggle('is-incursion',incursions)
-	}
-
-	showFlightData = (data) => {
-		this.options.dom.flightData.innerHTML = data
-	}
-
-	clearFlightData = () => {
-		this.options.dom.flightData.innerHTML = ''
 	}
 
 	// **********************************************************

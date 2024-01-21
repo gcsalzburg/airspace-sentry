@@ -1,5 +1,6 @@
 'use strict'
 
+import Follower from './Follower.js'
 import Sentry from './Sentry.js'
 
 
@@ -10,8 +11,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 	const	sentry = new Sentry({
 		debug: true,
+		follower: new Follower(),
 		mapbox_token: 'pk.eyJ1IjoiZ2NzYWx6YnVyZyIsImEiOiJjam1pNm5uZmcwMXNyM3FtNGp6dTY3MGxsIn0.PmLPkI3T8UxjEIPnz7fxEA',
-		intersect_area: './data/tda.geojson',
+		intersect_area: './data/tda-test.geojson',
 		dom: {
 			mapbox: document.querySelector('.mapbox-map'),
 			flightData: document.querySelector('.flight-data'),
@@ -59,5 +61,4 @@ document.addEventListener("DOMContentLoaded", async () => {
 				break
 		}
 	}))
-
 })

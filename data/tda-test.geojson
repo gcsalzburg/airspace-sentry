@@ -1,6 +1,8 @@
 {
 	"type": "Feature",
-	"properties": {},
+	"properties": {
+		"title": "Test Region",
+		"height": [0, 1000]},
 	"geometry": {
 	  "coordinates": [
 		 [

@@ -168,3 +168,25 @@ h1{
 .is-incursion h2, .is-incursion p{
 	margin-left: 10px;
 }
+
+.mouse-follower{
+	position: fixed;
+	display: flex;
+	pointer-events: none;
+	top: 20px;
+	left: -250px;
+	width: 500px;
+	justify-content: center;
+	z-index: 5000;
+}
+.mouse-follower span{
+	display: block;
+	background: hsl(0, 0%, 100%, 0.95);
+	color: black;
+	font-size: 0.7em;
+	font-weight: 700;
+	padding: 0.15em 0.5em;
+}
+.mouse-follower:not(.isVisible){
+	display:none;
+}
