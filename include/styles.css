@@ -8,6 +8,7 @@ html, body{
 }
 a{
 	color:rgb(145, 201, 239);
+	color: rgb(235, 250, 106);
 }
 body{
 	background-color: rgb(19, 21, 20);
@@ -86,6 +87,7 @@ h1{
 	margin-bottom: 8px;
 	padding: 0 0 8px 0;
 	width: calc(60% / 3);
+	position: relative;
 }
 .stat:not(:last-of-type){
 	margin-right: 25px;
@@ -101,6 +103,16 @@ h1{
 	margin:-2px 0 0 0;
 	padding:0 0 3px 2px;
 }
+
+.progress-line{
+	content: "";
+	position: absolute;
+	height: 1px;
+	width: 30%;
+	background: rgb(128, 245, 173);
+	bottom: -0.5px;
+}
+
 .live-tag{
 	font-size: 0.6em;
 	display: inline-block;
@@ -108,7 +120,7 @@ h1{
 	padding: 0.1em 0.2em;
 	border-radius: 3px;
 	color: black;
-	transform: translate(4px, -5px);
+	transform: translate(4px, -6px);
 	animation: 0.8s linear infinite alternate live-tag-background;
 }
 @keyframes live-tag-background {

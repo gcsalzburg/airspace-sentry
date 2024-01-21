@@ -52,9 +52,9 @@ export default class{
 		},
 		styles: {
 			colours: {
-				incursionArea: 'rgb(249, 241, 138)',
+				incursionArea: 'rgb(235, 250, 106)',
 				searchArea: 'rgb(145, 201, 239)',
-				trackActive: 'rgb(230, 145, 239)',
+				trackActive: 'rgb(128, 245, 173)', //'rgb(230, 145, 239)',
 				trackInactive: 'rgba(255, 255, 255 ,0.3)'
 			}
 		}
@@ -188,8 +188,8 @@ export default class{
 			},
 			'paint': {
 				'line-color': `${this.options.styles.colours.trackInactive}`,
-				'line-width': 2,
-				'line-blur': 0
+				'line-width': 1,
+				'line-blur': 3
 			}
 		})
 
@@ -279,7 +279,7 @@ export default class{
 			},
 			'paint': {
 				'line-color': `${this.options.styles.colours.trackActive}`,
-				'line-width': 2,
+				'line-width': 1,
 				'line-blur': 0
 			}
 		})
@@ -377,10 +377,9 @@ export default class{
 			flight.properties.heading = aircraft.track
 			flight.properties.lastData = requestTime
 
-			// Check if it is inside the area!
-			flight.properties.intersects = turf.booleanPointInPolygon([aircraft.lon, aircraft.lat], this.incursionArea)
+			// Check if it is inside the area
 
-			if(flight.properties.intersects){
+			if(this.isPointIncursion([aircraft.lon, aircraft.lat], this.incursionArea)){
 
 				// If the incursion isn't being logged right now
 				if(!this.trackedData.incursionTracks.features.find(track => ((track.properties.id == flight.properties.id) && track.properties.isIncursionOngoing))){
@@ -413,6 +412,28 @@ export default class{
 
 			}
 		}
+	}
+
+	// **********************************************************
+	// Intersection checks
+
+	// Checks if the point is inside the incursion area
+	isPointIncursion = (latlon, area) => {
+
+		if(area.type == 'FeatureCollection'){
+			// Multiple areas to check
+			for(let feature of area.features){
+				if(turf.booleanPointInPolygon(latlon, feature)){
+					return true
+				}
+			}
+
+		}else if (area.type == 'Feature'){
+			// Single area
+			return turf.booleanPointInPolygon(latlon, area)
+		}
+
+		return false
 	}
 
 

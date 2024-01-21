@@ -11,7 +11,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 	const	sentry = new Sentry({
 		debug: true,
 		mapbox_token: 'pk.eyJ1IjoiZ2NzYWx6YnVyZyIsImEiOiJjam1pNm5uZmcwMXNyM3FtNGp6dTY3MGxsIn0.PmLPkI3T8UxjEIPnz7fxEA',
-		intersect_area: './data/tda-test.geojson',
+		intersect_area: './data/tda.geojson',
 		dom: {
 			mapbox: document.querySelector('.mapbox-map'),
 			flightData: document.querySelector('.flight-data'),
@@ -28,9 +28,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 	setInterval(() => {
 		if(sentry.options.fetch.nextFetch){
-			document.querySelector('.refresh-in').innerHTML = Math.max(0, Math.round(sentry.options.fetch.nextFetch - Date.now()/1000))
-		}
-	},100)
+			const percentProgress = 1- Math.max(0,(sentry.options.fetch.nextFetch - Date.now()/1000)/sentry.options.fetch.interval)
+			document.querySelector('.progress-line').style.width = `${percentProgress*100}%`
+	}
+	},25)
 
 	// **********************************************************
 	// Handle buttons
