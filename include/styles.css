@@ -186,7 +186,9 @@ h1{
 	font-size: 0.7em;
 	font-weight: 700;
 	padding: 0.15em 0.5em;
+	border-top: 3px solid #fff;
 }
-.mouse-follower:not(.isVisible){
+.mouse-follower:not(.has-border) span{border-top-width: 0px;}
+.mouse-follower:not(.is-visible){
 	display:none;
 }

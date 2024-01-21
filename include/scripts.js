@@ -11,7 +11,12 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 	const	sentry = new Sentry({
 		debug: true,
-		follower: new Follower(),
+		follower: new Follower({
+			styles: {
+				incursion: '#ffd418',
+				incursionTrack: '#ff6520'
+			}
+		}),
 		mapbox_token: 'pk.eyJ1IjoiZ2NzYWx6YnVyZyIsImEiOiJjam1pNm5uZmcwMXNyM3FtNGp6dTY3MGxsIn0.PmLPkI3T8UxjEIPnz7fxEA',
 		intersect_area: './data/tda-test.geojson',
 		dom: {

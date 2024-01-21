@@ -5,6 +5,11 @@ export default class{
 	options = {
 	}
 
+	saved = {
+		text: null,
+		style: null
+	}
+
 	// **********************************************************
 	// Constructor, to merge in options
 	constructor(options){
@@ -23,12 +28,35 @@ export default class{
 	// **********************************************************
 	// Set / clear content
 
-	set = (text) => {
+	set = (text, options = {}) => {
+
+		// If we should save this one
+		if(options.save){
+			this.saved.text = text
+			this.saved.style = options.style
+		}
+
 		this.container.querySelector('span').innerHTML = text
-		this.container.classList.add('isVisible')
+		this.container.classList.add('is-visible')
+
+		if(options.style){
+			this.container.classList.add('has-border')
+			this.container.querySelector('span').style.borderTopColor = this.options.styles[options.style]
+		}
 	}
 
 	clear = () => {
-		this.container.classList.remove('isVisible')
+		this.container.classList.remove('is-visible')
+		this.container.classList.remove('has-border')
+	}
+
+	restoreSaved = () => {
+		if(this.saved.text){
+			this.set(this.saved.text, {
+				style: this.saved.style
+			})
+		}else{
+			this.clear()
+		}
 	}
 }

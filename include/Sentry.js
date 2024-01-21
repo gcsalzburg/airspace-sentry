@@ -29,6 +29,7 @@ export default class{
 	
 	// References for currently active hover element
 	hoveredIncursionTrack = null
+	isHoveredIncursionArea = false
 
 	// Ratio
 	metreToNmRatio = 0.0005399568 // 1m = x nautical miles
@@ -58,11 +59,13 @@ export default class{
 		},
 		styles: {
 			colours: {
-				incursionArea: '#94a400', //'#52dfff',
+				incursionArea: '#94a400',
+				trackIncursion: '#ffd418',
+				trackIncursionHover: '#ff6520',
+
 				searchArea: 'rgb(145, 201, 239)',
 				trackActive: 'rgb(128, 245, 173)',
-				trackInactive: 'rgba(255, 255, 255 ,0.3)',
-				trackIncursion: '#ffd418', //'#ffffff'
+				trackInactive: 'rgba(255, 255, 255 ,0.3)'
 			}
 		}
 	}
@@ -174,7 +177,8 @@ export default class{
 			if (e.features.length > 0) {
 				if(e.features.at(0).properties.height){
 					const heights = JSON.parse(e.features.at(0).properties.height)
-					this.options.follower.set(`${e.features.at(0).properties.title}: ${heights[0]}-${heights[1]}m`)
+					this.options.follower.set(`${e.features.at(0).properties.title}: ${heights[0]}-${heights[1]}m`, {style: 'incursion', save: true})
+					this.isHoveredIncursionArea = true
 				}
 			}
 		})
@@ -182,6 +186,7 @@ export default class{
 			// Clear hover effect
 			this.map.getCanvas().style.cursor = ''
 			this.options.follower.clear()
+			this.isHoveredIncursionArea = false
 		})
 		
 
@@ -222,7 +227,7 @@ export default class{
 				'line-color': [
 					'case',
 					['boolean', ['feature-state', 'hover'], false],
-					'#ff6520',
+					this.options.styles.colours.trackIncursionHover,
 					this.options.styles.colours.trackIncursion
 				],
 				'line-width': [
@@ -257,7 +262,7 @@ export default class{
 				const trackProperties = e.features.at(0).properties
 				const durationSeconds = Math.round((trackProperties.lastData - trackProperties.firstData)/1000)
 				const altitudes = JSON.parse(trackProperties.altitude)
-				this.options.follower.set(`Incursion from flight ${trackProperties.flightName} for ${durationSeconds}s<br>(${altitudes.min}-${altitudes.max}m)`)
+				this.options.follower.set(`Incursion from flight ${trackProperties.flightName} for ${durationSeconds}s<br>(${altitudes.min}-${altitudes.max}m)`, {style: 'incursionTrack'})
 			}
 		})
 		this.map.on('mouseleave', 'incursionTracks', () => {
@@ -270,8 +275,13 @@ export default class{
 			}
 			this.hoveredIncursionTrack = null
 
-			//this.map.getCanvas().style.cursor = ''
-			this.options.follower.clear()
+			// If we are still in an incursion area, then go back to the previous saved setup
+			if(this.isHoveredIncursionArea){
+				this.options.follower.restoreSaved()
+			}else{
+				this.map.getCanvas().style.cursor = 'pointer'
+				this.options.follower.clear()
+			}
 		})
 
 	}
@@ -522,8 +532,7 @@ export default class{
 	}
 
 	isIncursionAreaWithHeights = () => {
-		console.log(this.incursionArea)
-		
+				
 		if(this.incursionArea.type == 'FeatureCollection'){
 			// Multiple areas to check
 			for(let feature of this.incursionArea.features){
