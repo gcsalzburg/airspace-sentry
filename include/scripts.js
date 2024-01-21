@@ -50,6 +50,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 				break
 			case 'clear-api-key':
 				sentry.clearAPIKey()
+				break
+			case 'toggle-options':
+				document.querySelector('.options').classList.toggle('is-expanded')
+				break
 		}
 	}))
 

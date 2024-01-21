@@ -8,7 +8,7 @@ html, body{
 }
 a{
 	color:rgb(145, 201, 239);
-	color: rgb(235, 250, 106);
+	color: rgb(251, 255, 215);
 }
 body{
 	background-color: rgb(19, 21, 20);
@@ -43,6 +43,31 @@ h1{
 	font-size: 0.7em;
 	text-align: right;
 }
+.options ul{
+	list-style: '|';
+	display:flex;
+	margin:0;
+	padding:0;
+	justify-content: flex-end;
+}
+.options li{
+	text-align: left;
+	margin-left: 15px;
+	padding-left: 8px;
+}
+.options li:first-of-type, .options:not(.is-expanded) li:last-of-type{
+	list-style: none;
+	margin-left: 0;
+	padding-left: 0;
+}
+.options:not(.is-expanded) li:not(:last-of-type){
+	display: none;
+}
+.options.is-expanded .toggle-button .expand-msg,
+.options:not(.is-expanded) .toggle-button .close-msg{
+	display: none;
+}
+
 
 .marker_aircraft{
 	width:40px;
