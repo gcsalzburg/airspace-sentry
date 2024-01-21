@@ -45,8 +45,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 		const hash = url_target.substring(url_target.indexOf('#') + 1)
 
 		switch(hash){
-			case 'reset-storage':
-				sentry.resetStorage()
+			case 'clear-tracks':
+				sentry.clearTracks()
 				break
 			case 'clear-api-key':
 				sentry.clearAPIKey()

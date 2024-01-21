@@ -51,17 +51,18 @@ export default class{
 			host: 'adsbexchange-com1.p.rapidapi.com'
 		},
 		mapbox_token: '',
-		mapbox_style: 'mapbox://styles/gcsalzburg/cjmn85as2dzu12rpkmaw53hsj',
+		mapbox_style: 'mapbox://styles/gcsalzburg/clrnxqdbb005f01plh2c9fe1p',
 		fetch: {
 			interval: 5,
 			nextFetch: 0
 		},
 		styles: {
 			colours: {
-				incursionArea: 'rgb(235, 250, 106)',
+				incursionArea: '#52dfff',
 				searchArea: 'rgb(145, 201, 239)',
-				trackActive: 'rgb(128, 245, 173)', //'rgb(230, 145, 239)',
-				trackInactive: 'rgba(255, 255, 255 ,0.3)'
+				trackActive: 'rgb(128, 245, 173)',
+				trackInactive: 'rgba(255, 255, 255 ,0.3)',
+				trackIncursion: '#ff7918'
 			}
 		}
 	}
@@ -163,7 +164,7 @@ export default class{
 			'layout': {},
 			'paint': {
 				'fill-color': `${this.options.styles.colours.incursionArea}`,
-				'fill-opacity': 0.7
+				'fill-opacity': 0.65
 			}
 		})
 
@@ -200,7 +201,7 @@ export default class{
 				'line-cap': 'round'
 			},
 			'paint': {
-				'line-color': `rgb(255,0,0)`,
+				'line-color': this.options.styles.colours.trackIncursion,
 				'line-width': [
 					'case',
 					['boolean', ['feature-state', 'hover'], false],
@@ -619,9 +620,8 @@ export default class{
 		}
 	}
 
-	resetStorage = () => {
+	clearTracks = () => {
 		localStorage.removeItem('trackedData')
-		localStorage.removeItem('searchArea')
 		location.reload()
 	}
 
