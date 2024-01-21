@@ -45,14 +45,17 @@ document.addEventListener("DOMContentLoaded", async () => {
 		const hash = url_target.substring(url_target.indexOf('#') + 1)
 
 		switch(hash){
-			case 'clear-storage':
-				sentry.clearStorageAndTracks()
+			case 'reset-storage':
+				sentry.resetStorage()
 				break
 			case 'clear-api-key':
 				sentry.clearAPIKey()
 				break
 			case 'toggle-options':
 				document.querySelector('.options').classList.toggle('is-expanded')
+				break
+			case 'toggle-search-area-editing':
+				sentry.toggleSearchCircle()
 				break
 		}
 	}))

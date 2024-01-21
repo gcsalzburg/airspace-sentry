@@ -21,23 +21,29 @@ export default class{
 	// Mapbox map object
 	map = null
 
+	// Search area for ADSB
+	searchCircle = null
+
 	// Search area for incursions
 	incursionArea = null
 	
 	// References for currently active hover element
 	hoveredIncursionTrack = null
+
+	// Ratio
+	metreToNmRatio = 0.0005399568 // 1m = x nautical miles
  
 	// Default options are below
 	options = {
 		debug: false,
-		centre: {
-			lng: -1.966238,
-			lat: 55.055068,
-			zoom: 9
-		},
+		zoom: 9,
 		search: {
+			centre: {
+				lng: -1.966238,
+				lat: 55.055068,
+			},
 			radius: 38000, // best = 38000
-			ratio: 0.0005399568, // 1m = x nautical miles
+			editable: false
 		},
 		intersect_area: '/data/tda.geojson',
 		rapidAPI: {
@@ -70,12 +76,15 @@ export default class{
 		// Helper for when we want to debug
 		if(this.options.debug){
 			this.options.search.radius = 150000
-			this.options.centre.zoom = 7
+			this.options.zoom = 7
 			this.options.fetch.interval = 2
 		}
 
 		// Load RapidAPI Key
 		this.loadAPIKey()
+
+		// Load search area data
+		this.loadSearchArea()
 
 		// Load Mapbox Map
 		this.initSentry()
@@ -90,8 +99,8 @@ export default class{
 			accessToken: this.options.mapbox_token,
 			container: this.options.dom.mapbox,
 			style: this.options.mapbox_style, // TODO: Reduce dominance of underlying roads
-			center: [this.options.centre.lng, this.options.centre.lat],
-			zoom: this.options.centre.zoom,
+			center: [this.options.search.centre.lng, this.options.search.centre.lat],
+			zoom: this.options.zoom,
 		})
 
 		// Load in search area polygon from file
@@ -109,7 +118,7 @@ export default class{
 	}
 	
 	// The main fetch & render loop
-	fetchAndRender = async () => {
+	fetchAndRender = async (oneOffForce = false) => {
 
 		// Fetch new data from ADSB and update trackedData.activeFlights with it
 		await this.fetchADSB()
@@ -129,10 +138,12 @@ export default class{
 		this.renderStats()
 
 		// Fetch again!
-		setTimeout(() => {
-			this.fetchAndRender()
-		}, this.options.fetch.interval*1000)
-		this.options.fetch.nextFetch = Date.now()/1000 + this.options.fetch.interval
+		if(!oneOffForce){
+			setTimeout(() => {
+				this.fetchAndRender()
+			}, this.options.fetch.interval*1000)
+			this.options.fetch.nextFetch = Date.now()/1000 + this.options.fetch.interval
+		}
 	}
 
 	// **********************************************************
@@ -141,27 +152,7 @@ export default class{
 
 		// [0] Add the circle to show the search area for ADSB-Exchange
 		// Uses: https://github.com/smithmicro/mapbox-gl-circle/
-		const searchCircle = new MapboxCircle({lat: this.options.centre.lat, lng: this.options.centre.lng}, this.options.search.radius, {
-			editable: true,
-			fillColor: `${this.options.styles.colours.searchArea}`,
-			fillOpacity: 0.05,
-			strokeWeight: 0,
-			maxRadius: 250/this.options.search.ratio
-		}).addTo(this.map)
-
-		searchCircle.on('centerchanged', (circleObj) => {
-			const newCentre = circleObj.getCenter()
-			this.options.centre.lat = newCentre.lat
-			this.options.centre.lng = newCentre.lng
-		})
-		searchCircle.on('radiuschanged', (circleObj) => {
-			try{
-				this.options.search.radius = circleObj.getRadius()
-			}catch{
-				
-			}
-		})
-
+		this.drawSearchAreaCircle(this.options.search.editable)
 
 		// [1] Add the incursionArea layer
 		this.map.addSource('incursionArea', {'type':'geojson', 'data':this.incursionArea})
@@ -263,6 +254,78 @@ export default class{
 
 	}
 
+	
+	// **********************************************************
+	// Create the search area circle
+	// Uses: https://github.com/smithmicro/mapbox-gl-circle/
+
+	// Show/hide the search area visual
+	toggleSearchCircle = () => {
+		this.options.search.editable = !this.options.search.editable
+		this.saveSearchArea()
+		this.drawSearchAreaCircle(this.options.search.editable)
+	}
+
+	// Draw the search area circle on the screen
+	drawSearchAreaCircle = (isEditable = true, isVisible = true) => {
+
+		if(this.searchCircle){
+			this.searchCircle.remove()
+		}
+
+		if(!isVisible) return
+
+		const searchOptions = {
+			editable: isEditable,
+			fillColor: `${this.options.styles.colours.searchArea}`,
+			fillOpacity: 0,
+			strokeWeight: 0,
+			strokeColor: 'rgb(255,255,255)',
+			strokeOpacity: 0.3,
+			maxRadius: 250/this.metreToNmRatio
+		}
+
+		if(isEditable){
+			searchOptions.strokeWeight = 1
+			searchOptions.fillOpacity = 0.05
+		}
+
+		this.searchCircle = new MapboxCircle({lat: this.options.search.centre.lat, lng: this.options.search.centre.lng}, this.options.search.radius, searchOptions)
+		
+		if(this.map.getLayer('incursionArea')){
+			this.searchCircle.addTo(this.map, 'incursionArea')
+		}else{
+			this.searchCircle.addTo(this.map)
+		}
+
+		this.searchCircle.on('centerchanged', (circleObj) => {
+			const newCentre = circleObj.getCenter()
+			this.options.search.centre.lat = newCentre.lat
+			this.options.search.centre.lng = newCentre.lng
+
+			// Save changes to localStorage
+			this.saveSearchArea()
+			
+			// Immediately call to update aircraft in view
+			this.fetchAndRender(true)
+		})
+		this.searchCircle.on('radiuschanged', (circleObj) => {
+			try{
+				// We need a try/catch here to avoid a bug when you hover over an aircraft whilst dragging
+
+				this.options.search.radius = circleObj.getRadius()
+
+				// Save changes to localStorage
+				this.saveSearchArea()
+
+				// Immediately call to update aircraft in view
+				this.fetchAndRender(true)
+			}catch{
+				
+			}
+		})
+	}
+
 	// **********************************************************
 	// Create a new layer for the active flight on it
 	addActiveFlightToMap = (flight) => {
@@ -319,7 +382,7 @@ export default class{
 	fetchADSB = async () => {
 
 		// Fetch data from ADSB Exchange
-		const url = `https://adsbexchange-com1.p.rapidapi.com/v2/lat/${this.options.centre.lat}/lon/${this.options.centre.lng}/dist/${this.options.search.radius * this.options.search.ratio}/`;
+		const url = `https://adsbexchange-com1.p.rapidapi.com/v2/lat/${this.options.search.centre.lat}/lon/${this.options.search.centre.lng}/dist/${this.options.search.radius * this.metreToNmRatio}/`;
 		const options = {
 			method: 'GET',
 			headers: {
@@ -556,9 +619,20 @@ export default class{
 		}
 	}
 
-	clearStorageAndTracks = () => {
+	resetStorage = () => {
 		localStorage.removeItem('trackedData')
+		localStorage.removeItem('searchArea')
 		location.reload()
+	}
+
+	saveSearchArea = () => {
+		localStorage.setItem('searchArea', JSON.stringify(this.options.search))
+	}
+	loadSearchArea = () => {
+		if(localStorage.getItem('searchArea')){	
+			const searchArea = JSON.parse(localStorage.getItem('searchArea'))
+			this.options.search = {...this.options.search, ...searchArea}
+		}
 	}
 
 }
