@@ -14,7 +14,8 @@
 + Add flight event incursion log below
 + Add better options
 + Add save/restore data, and also export geoJSON option
-+ Add height limit checker
++ ~~Add height limit checker~~
 + ~~Save an options object on page reload with search circle. Add clear button for it below~~
 + Convert saved search circle to a geoJSON circle in saved data
-+ Transition hover effect between adjacent incursion regions better
++ ~~Transition hover effect between adjacent incursion regions better~~
++ ~~Fix flashing when incursions in progress~~

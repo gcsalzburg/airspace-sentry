@@ -30,6 +30,7 @@ export default class{
 	// References for currently active hover element
 	hoveredIncursionTrack = null
 	isHoveredIncursionArea = false
+	hoveredIncursionArea = null
 
 	// Ratio
 	metreToNmRatio = 0.0005399568 // 1m = x nautical miles
@@ -160,7 +161,7 @@ export default class{
 		this.drawSearchAreaCircle(this.options.search.editable)
 
 		// [1] Add the incursionArea layer
-		this.map.addSource('incursionArea', {'type':'geojson', 'data':this.incursionArea})
+		this.map.addSource('incursionArea', {'type':'geojson', 'data':this.incursionArea, 'promoteId': "title"})
 		this.map.addLayer({
 			'id': 'incursionArea',
 			'type': 'fill',
@@ -168,18 +169,35 @@ export default class{
 			'layout': {},
 			'paint': {
 				'fill-color': `${this.options.styles.colours.incursionArea}`,
-				'fill-opacity': 0.65
+				'fill-opacity': [
+					'case',
+					['boolean', ['feature-state', 'hover'], false],
+					0.85,
+					0.55
+				]		
 			}
 		})
 
-		this.map.on('mouseenter', 'incursionArea', (e) => {
+		this.map.on('mousemove', 'incursionArea', (e) => {
 			this.map.getCanvas().style.cursor = 'pointer'
 			if (e.features.length > 0) {
 				if(e.features.at(0).properties.height){
 					const heights = JSON.parse(e.features.at(0).properties.height)
-					this.options.follower.set(`${e.features.at(0).properties.title}: ${heights[0]}-${heights[1]}m`, {style: 'incursion', save: true})
+					this.options.follower.set(`${e.features.at(0).properties.title}<br>${heights.min} - ${heights.max}m`, {style: 'incursion', save: true})
 					this.isHoveredIncursionArea = true
 				}
+
+				if(this.hoveredIncursionArea !== null){
+					this.map.setFeatureState(
+						{source:'incursionArea', id: this.hoveredIncursionArea},
+						{hover:false}
+					)
+				}
+				this.hoveredIncursionArea = e.features.at(0).id;
+				this.map.setFeatureState(
+					{source:'incursionArea', id: this.hoveredIncursionArea},
+					{hover:true}
+				)
 			}
 		})
 		this.map.on('mouseleave', 'incursionArea', () => {
@@ -187,6 +205,14 @@ export default class{
 			this.map.getCanvas().style.cursor = ''
 			this.options.follower.clear()
 			this.isHoveredIncursionArea = false
+
+			if(this.hoveredIncursionArea !== null){
+				this.map.setFeatureState(
+					{source:'incursionArea', id: this.hoveredIncursionArea},
+					{hover:false}
+				)
+			}
+			this.hoveredIncursionArea = null
 		})
 		
 
@@ -242,7 +268,7 @@ export default class{
 
 		// Add hover effects
 		// Add hover effects to incursion tracks
-		this.map.on('mouseenter', 'incursionTracks', (e) => {
+		this.map.on('mousemove', 'incursionTracks', (e) => {
 			this.map.getCanvas().style.cursor = 'pointer'
 			if (e.features.length > 0) {
 
@@ -474,7 +500,7 @@ export default class{
 
 			// Check if it is inside the area
 
-			if(this.isPointIncursion([aircraft.lon, aircraft.lat], this.incursionArea)){
+			if(this.isPointIncursion([aircraft.lon, aircraft.lat], this.incursionArea, aircraft.alt_baro)){
 
 				// If the incursion isn't being logged right now
 				if(!this.trackedData.incursionTracks.features.find(track => ((track.properties.id == flight.properties.id) && track.properties.isIncursionOngoing))){
@@ -513,23 +539,36 @@ export default class{
 	// Incursion area checks
 
 	// Checks if the point is inside the incursion area
-	isPointIncursion = (latlon, area) => {
+	isPointIncursion = (latlng, area, height = -1) => {
 
 		if(area.type == 'FeatureCollection'){
 			// Multiple areas to check
 			for(let feature of area.features){
-				if(turf.booleanPointInPolygon(latlon, feature)){
+				if(this._isPointIncursion(latlng, feature, height)){
 					return true
 				}
 			}
 
 		}else if (area.type == 'Feature'){
 			// Single area
-			return turf.booleanPointInPolygon(latlon, area)
+			return this._isPointIncursion(latlng, area, height)
 		}
 
 		return false
 	}
+	
+	_isPointIncursion = (latlng, feature, height) => {
+		if(turf.booleanPointInPolygon(latlng, feature)){
+			if((height >= 0) && this._checkForHeight(feature)){
+				if((height >= feature.properties.height.min) && (height <= feature.properties.height.max)){
+					return true
+				}
+			}
+		}
+		return false
+	}
+
+
 
 	isIncursionAreaWithHeights = () => {
 				
@@ -548,13 +587,8 @@ export default class{
 
 	_checkForHeight = (feature) => {
 		if(feature.properties.height){
-			const height = feature.properties.height
-			if(Array.isArray(height)){
-				if(height.length == 2){
-					if(height[1] >= height[0])
-					return true
-				}
-			}
+			// TODO Add proper height validity check here
+			return true
 		}
 		console.log(`No height found for 1+ incursion region (${feature.properties.title})). Incursions may be calculated without heights.`)
 	}
@@ -569,6 +603,9 @@ export default class{
 		const staleFlights = this.trackedData.activeFlights.filter(flight => flight.properties.lastData+(2*this.options.fetch.interval) < this.trackedData.lastData)
 
 		for(let flight of staleFlights){
+
+			// Reduce the size of the tracked data to save on localStorage
+			flight.geometry.coordinates = this._everyNthElement(flight.geometry.coordinates, 10)
 
 			// Add this to loggedTracks now
 			this.trackedData.loggedTracks.features.push(flight)
@@ -641,8 +678,8 @@ export default class{
 		this.options.dom.stats.logged.innerHTML = this.trackedData.loggedTracks.features.length
 
 		// Add styling for current incursion
-		const incursions = this.trackedData.activeFlights.reduce((total, flight) => total | flight.properties.intersects, false)
-		this.options.dom.stats.incursions.parentNode.classList.toggle('is-incursion',incursions)
+		const incursions = this.trackedData.incursionTracks.features.reduce((total, flight) => total | flight.properties.isIncursionOngoing, false)
+		this.options.dom.stats.incursions.parentNode.classList.toggle('is-incursion', incursions)
 	}
 
 	// **********************************************************
@@ -684,6 +721,14 @@ export default class{
 			const searchArea = JSON.parse(localStorage.getItem('searchArea'))
 			this.options.search = {...this.options.search, ...searchArea}
 		}
+	}
+
+	// **********************************************************
+	// Helpers
+
+	// Thin array, removing all but every nth element
+	_everyNthElement = (array, nth = 10) => {
+		return array.filter((_, i) => (i % nth) === 0)
 	}
 
 }

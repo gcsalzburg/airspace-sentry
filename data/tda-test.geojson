@@ -2,7 +2,11 @@
 	"type": "Feature",
 	"properties": {
 		"title": "Test Region",
-		"height": [0, 1000]},
+		"height": {
+			"min": 0,
+			"max": 25000
+		}
+	},
 	"geometry": {
 	  "coordinates": [
 		 [

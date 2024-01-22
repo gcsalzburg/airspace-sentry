@@ -5,7 +5,10 @@
 			"type": "Feature",
 			"properties": {
 				"title": "TDA Region A",
-				"height": [0, 1000]
+				"height": {
+					"min": 0,
+					"max": 1000
+				}
 			},
 			"geometry": {
 				"type": "Polygon",
@@ -27,7 +30,10 @@
 			"type": "Feature",
 			"properties": {
 				"title": "TDA Region B",
-				"height": [0, 1000]
+				"height": {
+					"min": 0,
+					"max": 228.6
+				}
 			},
 			"geometry": {
 				"type": "Polygon",
@@ -48,7 +54,10 @@
 			"type": "Feature",
 			"properties": {
 				"title": "TDA Region C",
-				"height": [0, 1000]
+				"height": {
+					"min": 0,
+					"max": 304.8
+				}
 			},
 			"geometry": {
 				"type": "Polygon",
@@ -69,7 +78,10 @@
 			"type": "Feature",
 			"properties": {
 				"title": "TDA Region D",
-				"height": [0, 1000]
+				"height": {
+					"min": 0,
+					"max": 350.52
+				}
 			},
 			"geometry": {
 				"type": "Polygon",
@@ -88,7 +100,10 @@
 			"type": "Feature",
 			"properties": {
 				"title": "TDA Region E",
-				"height": [0, 1000]
+				"height": {
+					"min": 0,
+					"max": 304.8
+				}
 			},
 			"geometry": {
 				"type": "Polygon",
@@ -107,7 +122,10 @@
 			"type": "Feature",
 			"properties": {
 				"title": "TDA Region F",
-				"height": [0, 1000]
+				"height": {
+					"min": 0,
+					"max": 365.76
+				}
 			},
 			"geometry": {
 				"type": "Polygon",
@@ -135,7 +153,10 @@
 			"type": "Feature",
 			"properties": {
 				"title": "TDA Region G",
-				"height": [0, 1000]
+				"height": {
+					"min": 0,
+					"max": 365.76
+				}
 			},
 			"geometry": {
 				"type": "Polygon",
