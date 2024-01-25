@@ -58,6 +58,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 			case 'clear-api-key':
 				sentry.clearAPIKey()
 				break
+			case 'export-geojson':
+				exportGeoJSON(sentry.getAllDataAsGeoJSON())
+				break
 			case 'toggle-options':
 				document.querySelector('.options').classList.toggle('is-expanded')
 				break
@@ -66,4 +69,16 @@ document.addEventListener("DOMContentLoaded", async () => {
 				break
 		}
 	}))
+
+	const exportGeoJSON = (geojson) => {
+
+		// Generate human readable JSON file with: https://futurestud.io/tutorials/node-js-human-readable-json-stringify-with-spaces-and-line-breaks 
+		// Trigger download
+
+		const helper_link = document.createElement('a')
+		helper_link.href = `data:application/geo+json;charset=utf-8,${encodeURI(JSON.stringify(geojson, null, 2))}`
+		helper_link.target = '_blank'
+		helper_link.download = `airspace-sentry-${Math.round(Date.now()/1000)}.geojson`
+		helper_link.click()
+	}
 })

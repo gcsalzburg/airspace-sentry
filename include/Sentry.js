@@ -12,7 +12,10 @@ export default class{
 			type: "FeatureCollection",
 			features: []				
 		},
-		activeFlights: []
+		activeFlights: {
+			type: "FeatureCollection",
+			features: []				
+		}
 	}
 
 	// geoJSON for the aircraft markers
@@ -234,7 +237,7 @@ export default class{
 		})
 
 		// [3] Add any active tracks (that must have been restored)
-		for(let flight of this.trackedData.activeFlights){
+		for(let flight of this.trackedData.activeFlights.features){
 			this.addActiveFlightToMap(flight)
 		}
 
@@ -462,7 +465,7 @@ export default class{
 		for(let aircraft of aircrafts){
 
 			// If it doesn't exist in the activeFlights list, then create it. Check if based on the aircraft.hex only
-			if(!this.trackedData.activeFlights.find(flight => (flight.properties.hex == aircraft.hex))){
+			if(!this.trackedData.activeFlights.features.find(flight => (flight.properties.hex == aircraft.hex))){
 
 				// Generate unique-enough ID for this new flight
 				const uniqueID = `${aircraft.hex}-${Date.now()}`
@@ -486,14 +489,14 @@ export default class{
 						coordinates: []
 					}
 				}
-				this.trackedData.activeFlights.push(newActiveFlight)
+				this.trackedData.activeFlights.features.push(newActiveFlight)
 
 				// Create a new flight track
 				this.addActiveFlightToMap(newActiveFlight)
 			}
 
 			// Update track with latest data
-			const flight = this.trackedData.activeFlights.find(flight => flight.properties.hex == aircraft.hex)
+			const flight = this.trackedData.activeFlights.features.find(flight => flight.properties.hex == aircraft.hex)
 			flight.geometry.coordinates.push([aircraft.lon, aircraft.lat, aircraft.alt_baro])
 			flight.properties.heading = aircraft.track
 			flight.properties.lastData = requestTime
@@ -600,7 +603,7 @@ export default class{
 	// Set any active flights to inactive if we have no new data from them
 	checkForCompletedFlights = () => {
 
-		const staleFlights = this.trackedData.activeFlights.filter(flight => flight.properties.lastData+(2*this.options.fetch.interval) < this.trackedData.lastData)
+		const staleFlights = this.trackedData.activeFlights.features.filter(flight => flight.properties.lastData+(2*this.options.fetch.interval) < this.trackedData.lastData)
 
 		for(let flight of staleFlights){
 
@@ -615,9 +618,9 @@ export default class{
 			this.map.removeSource(flight.properties.id)
 
 			// Remove from the activeFlights array
-			let index = this.trackedData.activeFlights.indexOf(flight)
+			let index = this.trackedData.activeFlights.features.indexOf(flight)
 			if (index > -1) {
-				this.trackedData.activeFlights.splice(index, 1)
+				this.trackedData.activeFlights.features.splice(index, 1)
 			}
 
 			// Remove the marker
@@ -655,7 +658,7 @@ export default class{
 	
 	// Remove and re-add all plane markers
 	renderActiveFlights = () => {
-		for(let flight of this.trackedData.activeFlights){
+		for(let flight of this.trackedData.activeFlights.features){
 			// Update the marker
 			const marker = this.aircraftMarkers.find(marker => marker._element.id == flight.properties.id)
 			marker.setLngLat([flight.geometry.coordinates.at(-1)[0], flight.geometry.coordinates.at(-1)[1]])
@@ -673,13 +676,93 @@ export default class{
 	renderStats = () => {
 
 		// Update numbers
-		this.options.dom.stats.active.innerHTML = this.trackedData.activeFlights.length
+		this.options.dom.stats.active.innerHTML = this.trackedData.activeFlights.features.length
 		this.options.dom.stats.incursions.innerHTML = this.trackedData.incursionTracks.features.length
 		this.options.dom.stats.logged.innerHTML = this.trackedData.loggedTracks.features.length
 
 		// Add styling for current incursion
 		const incursions = this.trackedData.incursionTracks.features.reduce((total, flight) => total | flight.properties.isIncursionOngoing, false)
 		this.options.dom.stats.incursions.parentNode.classList.toggle('is-incursion', incursions)
+	}
+
+	// **********************************************************
+	// LocalStorage save/restore for API key and tracked data
+
+	getAllDataAsGeoJSON = () => {
+
+		// Splice all data into one big GeoJSON FeatureCollection
+		const trackedData = structuredClone(this.trackedData)
+
+		// Create container for aircraft
+		trackedData.aircraft = {
+			type: "FeatureCollection",
+			features: []					
+		}
+
+		// Add a tag so when we combine everything into one featurecollection we can distinguish them
+		for(let feature of trackedData.incursionTracks.features){
+			feature.properties.trackType = 'incursion'
+		}
+		for(let feature of trackedData.loggedTracks.features){
+			feature.properties.trackType = 'logged'
+		}
+		for(let feature of trackedData.activeFlights.features){
+			feature.properties.trackType = 'active'
+
+			// Create some geoJSON points for the aircraft
+			trackedData.aircraft.features.push({
+				"type": "Feature",
+				"geometry": {
+				  "type": "Point",
+				  "coordinates": [feature.geometry.coordinates.at(-1)[0], feature.geometry.coordinates.at(-1)[1]]
+				},
+				"properties": {
+				  "flightName": feature.properties.flightName,
+				  "heading": feature.properties.heading,
+				  "hex": feature.properties.hex,
+				  "id": `${feature.properties.id}-aircraft`
+				}
+			 })
+		}
+
+		// Now add the incursion region
+		if(this.incursionArea.type == 'FeatureCollection'){
+			trackedData.incursionArea = structuredClone(this.incursionArea)
+		}else if (this.incursionArea.type == 'Feature'){
+			trackedData.incursionArea = {
+				type: "FeatureCollection",
+				features: [structuredClone(this.incursionArea)]					
+			}
+		}
+
+		// Finally add search area centre and radius
+		const searchAreaCentre = {
+			"type": "Feature",
+			"geometry": {
+			"type": "Point",
+				"coordinates": [this.options.search.centre.lng, this.options.search.centre.lat]
+			},
+			"properties": {
+				"name": "searchArea-centre"
+			}
+		}
+
+		const searchAreaRadius = turf.transformTranslate(searchAreaCentre, this.options.search.radius/1000, 0)
+		searchAreaRadius.properties.name = "searchArea-radius"
+
+		// Return everything
+		return {
+			"type": "FeatureCollection",
+			"features": [
+				searchAreaCentre,
+				searchAreaRadius,
+				...trackedData.incursionArea.features,
+				...trackedData.incursionTracks.features,
+				...trackedData.loggedTracks.features,
+				...trackedData.activeFlights.features,
+				...trackedData.aircraft.features,
+			]
+		}
 	}
 
 	// **********************************************************

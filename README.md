@@ -12,10 +12,14 @@
 + Make planes at high altitude faded out (or something)
 + ~~Show all altitudes on hover~~
 + Add flight event incursion log below
-+ Add better options
-+ Add save/restore data, and also export geoJSON option
++ ~~Add better options~~
++ ~~Add save/restore data, and also export geoJSON option~~
 + ~~Add height limit checker~~
 + ~~Save an options object on page reload with search circle. Add clear button for it below~~
-+ Convert saved search circle to a geoJSON circle in saved data
++ ~~Convert saved search circle to a geoJSON circle in saved data~~
 + ~~Transition hover effect between adjacent incursion regions better~~
 + ~~Fix flashing when incursions in progress~~
++ Show time logged files were logged from and to
++ Load a separate search area as needed
++ Add a little micro bar chart of logged events and incursions (if needed)
++ Highlight the flight on map as you hover over the chart
