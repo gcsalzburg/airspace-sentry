@@ -4,7 +4,7 @@
 		"title": "Test Region",
 		"height": {
 			"min": 0,
-			"max": 25000
+			"max": 45000
 		}
 	},
 	"geometry": {

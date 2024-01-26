@@ -18,9 +18,11 @@
 		<script src='include/lib/mapbox-gl-circle.js'></script>
 		<script src='https://npmcdn.com/@turf/turf/turf.min.js'></script>
 
+		<!-- SVG.js -->
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/svg.js/3.2.0/svg.min.js" integrity="sha512-EmfT33UCuNEdtd9zuhgQClh7gidfPpkp93WO8GEfAP3cLD++UM1AG9jsTUitCI9DH5nF72XaFePME92r767dHA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 	</head>
 
-	<body>
+	<body data-view="map">
 		<main>
 			<header>
 				<h1>Airspace Sentry</h1>
@@ -35,17 +37,27 @@
 				<div class="stat">
 					<h2 class="stat-incursions">0</h2>
 					<p>Incursions</p>
+					<span class="incursion-line"></span>
 				</div>
 				<div class="stat">
-					<h2 class="stat-logged">0</h2>
+					<h2 class="stat-logged hover-status">0</h2>
 					<p>Logged</p>
 				</div>
-				<div class="flight-data">
-
-				</div>
+			<!--	<nav class="tab-menu">
+					<a href="#map-view">Map</a>
+					<a href="#timeline-view">Timeline</a>
+				</nav>-->
 			</section>
-			<div class="mapbox-map"></div>
+			<div class="data-box-container">
+				<div class="map"></div>
+				<div class="timeline">
+					<div class="graph">
+					</div>
+					<div class="event-log"></div>
+				</div>
+			</div>
 			<section class="options">
+				<div class="status-bar"></div>
 				<ul>
 					<li><a href="#toggle-search-area-editing">Edit search area</a></li>
 					<li><a href="#clear-tracks">Clear tracks</a></li>

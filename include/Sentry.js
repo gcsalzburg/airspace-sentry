@@ -526,6 +526,9 @@ export default class{
 				incursionTrack.properties.altitude.max = Math.max(aircraft.alt_baro, incursionTrack.properties.altitude.max)
 				incursionTrack.properties.lastData = requestTime
 
+				// Update the active track with a note that it is intersecting
+				flight.properties.intersects = true
+
 			}else{
 
 				// If we had one we were logging, we can stop now 
@@ -533,6 +536,9 @@ export default class{
 				if(activeIncursionTrack){
 					activeIncursionTrack.properties.isIncursionOngoing = false
 				}
+
+				// Update the active track with a note that it is not intersecting
+				flight.properties.intersects = false
 
 			}
 		}
@@ -683,6 +689,21 @@ export default class{
 		// Add styling for current incursion
 		const incursions = this.trackedData.incursionTracks.features.reduce((total, flight) => total | flight.properties.isIncursionOngoing, false)
 		this.options.dom.stats.incursions.parentNode.classList.toggle('is-incursion', incursions)
+
+		// Update hover status
+		const loggedDates = this.getFirstAndLastDate(this.trackedData.loggedTracks.features)
+		this.options.dom.stats.logged.dataset.hoverStatus = `From: ${loggedDates.firstDateFormatted}, to: ${loggedDates.lastDateFormatted}`
+	}
+
+	getFirstAndLastDate = (featureArray) => {
+		const firstDate = new Date(featureArray.reduce((min, current) => Math.min(min, current.properties.firstData), Date.now()))
+		const lastDate = new Date(featureArray.reduce((max, current) => Math.max(max, current.properties.firstData), 0))
+		return {
+			firstDate : firstDate,
+			firstDateFormatted: `${firstDate.toLocaleDateString('en-GB')} ${firstDate.toLocaleTimeString('en-GB')}`,
+			lastDate : lastDate,
+			lastDateFormatted: `${lastDate.toLocaleDateString('en-GB')} ${lastDate.toLocaleTimeString('en-GB')}`,
+		}
 	}
 
 	// **********************************************************

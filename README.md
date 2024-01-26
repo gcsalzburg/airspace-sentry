@@ -19,8 +19,10 @@
 + ~~Convert saved search circle to a geoJSON circle in saved data~~
 + ~~Transition hover effect between adjacent incursion regions better~~
 + ~~Fix flashing when incursions in progress~~
-+ Show time logged files were logged from and to
++ ~~Show time logged files were logged from and to~~
 + Load a separate search area as needed
 + Add a little micro bar chart of logged events and incursions (if needed)
 + Highlight the flight on map as you hover over the chart
-+ Make incursion flash the bar at the bottom in bright red
++ ~~Make incursion flash the bar at the bottom in bright red~~
++ Add comments into css file
++ Add TimeAgo

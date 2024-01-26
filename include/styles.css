@@ -31,17 +31,28 @@ h1{
   	margin-top: 0.5em;
 }
 
-.mapbox-map{
+.data-box-container{
+	box-shadow: 0px 0px 14px 1px rgba(255,255,255,0.05);
 	width: 100%;
 	aspect-ratio: 16 / 9;
-	color: rgb(249, 138, 230);
-	box-shadow: 0px 0px 14px 1px rgba(255,255,255,0.05);
+	position: relative;
+}
+
+.map{
+	width: 100%;
+	height: 100%;
+}
+.timeline{
+	width: 100%;
+	height: 100%;
 }
 
 .options{
 	margin: 1em 0;
 	font-size: 0.7em;
 	text-align: right;
+	display: flex;
+  	justify-content: space-between;
 }
 .options ul{
 	list-style: '|';
@@ -91,12 +102,12 @@ h1{
 	position: absolute;
 }
 .marker_aircraft.is_intersect{
-	background: rgba(188, 152, 11, 0.76);
+	background: rgba(255, 101, 32, 0.76);
 	animation: 0.4s linear infinite alternate aircraft-incursion;
 }
 
 @keyframes aircraft-incursion {
-	from {background: rgba(142, 85, 12, 0.76);}
+	from {background: rgba(255, 101, 32, 0.76);}
 	to {background: rgba(188, 152, 11, 0.76);}
 }
 
@@ -104,12 +115,12 @@ h1{
 
 .stats{
 	display:flex;
-	margin: 20px 0 10px;
+	margin: 20px 0 0;
 }
 .stat{
 	/*border: 1px solid hsla(0, 0%, 100%, 50%);*/
 	border-bottom: 1px solid white;
-	margin-bottom: 8px;
+	margin-bottom: 18px;
 	padding: 0 0 8px 0;
 	width: calc(60% / 3);
 	position: relative;
@@ -153,21 +164,93 @@ h1{
 	to {background: rgb(128, 245, 173);}
 }
 
-.flight-data{
+
+.incursion-line{
+	content: "";
+	position: absolute;
+	height: 4px;
+	width: 100%;
+	background: rgb(255, 101, 32);
+	bottom: -1px;
+	animation: 0.4s linear infinite alternate incursion-line-background;
+	box-shadow: 0px 0px 31px 4px rgba(255, 101, 32, 0.4);
+	display:none;
 }
 
-.is-incursion{
-	background: rgba(142, 85, 12, 0.76);
-	animation: 0.4s linear infinite alternate incursion-background;
+.is-incursion h2{text-shadow: 0px 0px 10px rgb(255, 101, 32);}
+.is-incursion .incursion-line{display: block;}
+
+@keyframes incursion-line-background {
+	from {
+		background: rgb(255, 101, 32);
+		box-shadow: 0px 0px 31px 4px rgba(255, 101, 32, 0.7);
+	}
+	to {
+		background: rgb(194, 161, 15);
+		box-shadow: 0px 0px 31px 4px rgba(194, 161, 15, 0.7);
+	}
 }
 
-@keyframes incursion-background {
-	from {background: rgba(142, 85, 12, 0.76);}
-	to {background: rgb(194, 161, 15);}
+
+.tab-menu{
+	flex-grow: 1;
+	display: flex;
+	align-items: flex-end;
+	justify-content: end;	
 }
-.is-incursion h2, .is-incursion p{
-	margin-left: 10px;
+.tab-menu a{
+	text-decoration: none;
+	color: white;
+	font-weight: 600;
+	background: rgb(0, 0, 0);
+	padding: 0.3em 0.7em;
+	margin-left: 5px;
+	transition: 0.05s all ease-in;
 }
+
+.tab-menu a:not(.selected):hover{
+	padding-bottom: 0.5em;
+}
+
+[data-view="map"] .data-box-container .map{display:block;}
+[data-view="map"] .data-box-container .timeline{display:none;}
+[data-view="timeline"] .data-box-container .map{display:none;}
+[data-view="timeline"] .data-box-container .timeline{display:flex;}
+
+[data-view="map"] .tab-menu a[href="#map-view"],
+[data-view="timeline"] .tab-menu a[href="#timeline-view"]{
+	background: rgb(28, 59, 46);
+}
+
+
+/* *********************************************************** */
+/* *********************************************************** */
+/* Timeline view                                               */
+
+
+.timeline{
+	background: rgb(28, 59, 46);
+	flex-direction: column;
+}
+.timeline .graph{
+	aspect-ratio: 16/5;
+	padding: 20px;
+}
+.timeline .event-log{
+	background:hsla(0, 0%, 100%, 0.075);
+	flex-grow: 1;
+}
+
+
+
+
+
+
+
+
+
+
+
 
 .mouse-follower{
 	position: fixed;

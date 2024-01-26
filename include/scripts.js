@@ -18,9 +18,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 			}
 		}),
 		mapbox_token: 'pk.eyJ1IjoiZ2NzYWx6YnVyZyIsImEiOiJjam1pNm5uZmcwMXNyM3FtNGp6dTY3MGxsIn0.PmLPkI3T8UxjEIPnz7fxEA',
-		intersect_area: './data/tda.geojson',
+		intersect_area: './data/tda-test.geojson',
 		dom: {
-			mapbox: document.querySelector('.mapbox-map'),
+			mapbox: document.querySelector('.map'),
 			flightData: document.querySelector('.flight-data'),
 			stats: {
 				active: 		document.querySelector('.stat-active'),
@@ -43,7 +43,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 	// **********************************************************
 	// Handle buttons
 
-	document.querySelectorAll('a').forEach(link => link.addEventListener('click', async (e) => {
+	document.querySelectorAll('.options a, .tab-menu a').forEach(link => link.addEventListener('click', async (e) => {
 		e.preventDefault()
 
 		// Get the hash, to work out what sort of switch it is
@@ -52,6 +52,15 @@ document.addEventListener("DOMContentLoaded", async () => {
 		const hash = url_target.substring(url_target.indexOf('#') + 1)
 
 		switch(hash){
+
+			case 'map-view':
+				document.body.dataset.view = 'map'
+				break
+
+			case 'timeline-view':
+				document.body.dataset.view = 'timeline'
+				break
+
 			case 'clear-tracks':
 				sentry.clearTracks()
 				break
@@ -67,7 +76,17 @@ document.addEventListener("DOMContentLoaded", async () => {
 			case 'toggle-search-area-editing':
 				sentry.toggleSearchCircle()
 				break
+
 		}
+	}))
+
+	// Add hover status effects
+	document.querySelectorAll('.hover-status').forEach(hover => hover.addEventListener('mouseover', async (e) => {
+		if(!hover.dataset.hoverStatus) return
+		document.querySelector('.status-bar').innerHTML = hover.dataset.hoverStatus
+	}))
+	document.querySelectorAll('.hover-status').forEach(hover => hover.addEventListener('mouseout', async (e) => {
+		document.querySelector('.status-bar').innerHTML = ''
 	}))
 
 	const exportGeoJSON = (geojson) => {
@@ -81,4 +100,25 @@ document.addEventListener("DOMContentLoaded", async () => {
 		helper_link.download = `airspace-sentry-${Math.round(Date.now()/1000)}.geojson`
 		helper_link.click()
 	}
+/*
+	const drawSVG = () => {
+
+		const draw = SVG().addTo('.graph').size('100%', '100%')
+
+		const graph_inset = 50
+		const graph_w = draw.node.getBoundingClientRect().width - graph_inset
+		const graph_h = draw.node.getBoundingClientRect().height - graph_inset
+		const graph_x0 = graph_inset
+		const graph_y0 = 0 
+
+		// Draw background
+		draw.rect(graph_w, graph_h).attr({ fill: '#000' }).move(graph_x0, graph_y0)
+		draw.line(graph_x0, graph_y0, graph_x0, graph_h).stroke({ width: 1, color: '#fff' })
+		draw.line(graph_x0, graph_h, graph_w + graph_inset, graph_h).stroke({ width: 1, color: '#fff' })
+
+		draw.text('0m').fill('#fff').font({size:12}).move(0, graph_h)
+		draw.text('40000m').fill('#fff').font({size:12}).move(0, 0)
+	}
+
+	drawSVG()*/
 })
