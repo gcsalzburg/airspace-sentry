@@ -26,3 +26,4 @@
 + ~~Make incursion flash the bar at the bottom in bright red~~
 + ~~Add comments into css file~~
 + ~~Add TimeAgo~~
++ Save map pan and zoom to localStorage

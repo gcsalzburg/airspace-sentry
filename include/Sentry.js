@@ -40,14 +40,13 @@ export default class{
  
 	// Default options are below
 	options = {
-		debug: false,
-		zoom: 9,
+		zoom: 7,
 		search: {
 			centre: {
 				lng: -1.966238,
 				lat: 55.055068,
 			},
-			radius: 38000, // best = 38000
+			radius: 150000, // best = 38000
 			editable: false
 		},
 		intersect_area: '/data/tda.geojson',
@@ -58,7 +57,7 @@ export default class{
 		mapbox_token: '',
 		mapbox_style: 'mapbox://styles/gcsalzburg/clrnxqdbb005f01plh2c9fe1p',
 		fetch: {
-			interval: 5,
+			interval: 3,
 			nextFetch: 0
 		},
 		styles: {
@@ -80,13 +79,6 @@ export default class{
 
 		// TODO: Make this a deep merge
 		this.options = {...this.options, ...options}
-
-		// Helper for when we want to debug
-		if(this.options.debug){
-			this.options.search.radius = 150000
-			this.options.zoom = 7
-			this.options.fetch.interval = 2
-		}
 
 		// Load RapidAPI Key
 		this.loadAPIKey()
@@ -708,7 +700,7 @@ export default class{
 			}	
 		}
 		const firstDate = new Date(featureArray.reduce((min, current) => Math.min(min, current.properties.firstData), Date.now()))
-		const lastDate = new Date(featureArray.reduce((max, current) => Math.max(max, current.properties.firstData), 0))
+		const lastDate = new Date(featureArray.reduce((max, current) => Math.max(max, current.properties.lastData), 0))
 		const firstAgo = this._timeAgo(firstDate)
 		const lastAgo = this._timeAgo(lastDate)
 		const ago = `${(firstAgo.endsWith(' ago') ? firstAgo.substring(0, firstAgo.length-4) : firstAgo)} to ${lastAgo}`
@@ -829,8 +821,9 @@ export default class{
 		}
 	}
 
-	clearTracks = () => {
+	resetStorage = () => {
 		localStorage.removeItem('trackedData')
+		localStorage.removeItem('searchArea')
 		location.reload()
 	}
 

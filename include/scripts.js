@@ -10,7 +10,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 	// Create new Sentry object
 
 	const	sentry = new Sentry({
-		debug: true,
 		follower: new Follower({
 			styles: {
 				incursion: '#ffd418',
@@ -61,8 +60,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 				document.body.dataset.view = 'timeline'
 				break
 
-			case 'clear-tracks':
-				sentry.clearTracks()
+			case 'reset-storage':
+				sentry.resetStorage()
 				break
 			case 'clear-api-key':
 				sentry.clearAPIKey()
