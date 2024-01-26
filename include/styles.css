@@ -1,18 +1,40 @@
+/* *********************************************************** */
+/* Global vars                                                 */
+/* *********************************************************** */
+
+:root {
+	--color-primary: rgb(128, 245, 173);
+	--color-primary-darker: rgb(30, 192, 93);
+
+	--color-map-bg: rgb(28, 59, 46);
+	--color-incursion: rgb(255, 101, 32);
+	--color-incursion-area: rgba(188, 152, 11);
+
+	--color-page-bg: rgb(19, 21, 20);
+	--color-body-text: hsl(0, 0%, 89%);
+	--color-link: rgb(251, 255, 215);
+}
+
+
+/* *********************************************************** */
+/* Page layout                                                 */
+/* *********************************************************** */
+
+
 html, body{
 	font-family: 'Victor Mono', monospace;
 	margin: 0;
 }
 ::selection {
-	background: rgb(128, 245, 173);
-	color: black;
+	background: var(--color-primary);
+	color: var(--color-page-bg);
 }
 a{
-	color:rgb(145, 201, 239);
-	color: rgb(251, 255, 215);
+	color: var(--color-link);
 }
 body{
-	background-color: rgb(19, 21, 20);
-	color: hsl(0, 0%, 89%);
+	background-color: var(--color-page-bg);
+	color: var(--color-body-text);
 }
 
 main{
@@ -31,6 +53,10 @@ h1{
   	margin-top: 0.5em;
 }
 
+/* *********************************************************** */
+/* Main map box                                                */
+/* *********************************************************** */
+
 .data-box-container{
 	box-shadow: 0px 0px 14px 1px rgba(255,255,255,0.05);
 	width: 100%;
@@ -41,11 +67,16 @@ h1{
 .map{
 	width: 100%;
 	height: 100%;
+	background: var(--color-map-bg);
 }
 .timeline{
 	width: 100%;
 	height: 100%;
 }
+
+/* *********************************************************** */
+/* Options menu at page bottom                                 */
+/* *********************************************************** */
 
 .options{
 	margin: 1em 0;
@@ -79,6 +110,9 @@ h1{
 	display: none;
 }
 
+/* *********************************************************** */
+/* Aircraft markers on map                                     */
+/* *********************************************************** */
 
 .marker_aircraft{
 	width:40px;
@@ -102,16 +136,18 @@ h1{
 	position: absolute;
 }
 .marker_aircraft.is_intersect{
-	background: rgba(255, 101, 32, 0.76);
+	background: color-mix(in srgb, var(--color-incursion) 76%, transparent);
 	animation: 0.4s linear infinite alternate aircraft-incursion;
 }
 
 @keyframes aircraft-incursion {
-	from {background: rgba(255, 101, 32, 0.76);}
-	to {background: rgba(188, 152, 11, 0.76);}
+	from {background: color-mix(in srgb, var(--color-incursion) 76%, transparent);}
+	to {background: color-mix(in srgb, var(--color-incursion-area) 76%, transparent);}
 }
 
-
+/* *********************************************************** */
+/* Stats panel at top of screen                                */
+/* *********************************************************** */
 
 .stats{
 	display:flex;
@@ -145,14 +181,14 @@ h1{
 	position: absolute;
 	height: 1px;
 	width: 30%;
-	background: rgb(128, 245, 173);
+	background: var(--color-primary);
 	bottom: -0.5px;
 }
 
 .live-tag{
 	font-size: 0.6em;
 	display: inline-block;
-	background: rgb(30, 192, 93);
+	background: var(--color-primary-darker);
 	padding: 0.1em 0.2em;
 	border-radius: 3px;
 	color: black;
@@ -160,8 +196,8 @@ h1{
 	animation: 0.8s linear infinite alternate live-tag-background;
 }
 @keyframes live-tag-background {
-	from {background: rgb(30, 192, 93);}
-	to {background: rgb(128, 245, 173);}
+	from {background: var(--color-primary-darker);}
+	to {background: var(--color-primary);}
 }
 
 
@@ -170,27 +206,30 @@ h1{
 	position: absolute;
 	height: 4px;
 	width: 100%;
-	background: rgb(255, 101, 32);
+	background: var(--color-incursion);
 	bottom: -1px;
 	animation: 0.4s linear infinite alternate incursion-line-background;
-	box-shadow: 0px 0px 31px 4px rgba(255, 101, 32, 0.4);
+	box-shadow: 0px 0px 31px 4px color-mix(in srgb, var(--color-incursion) 40%, transparent);
 	display:none;
 }
 
-.is-incursion h2{text-shadow: 0px 0px 10px rgb(255, 101, 32);}
+.is-incursion h2{text-shadow: 0px 0px 10px var(--color-incursion);}
 .is-incursion .incursion-line{display: block;}
 
 @keyframes incursion-line-background {
 	from {
-		background: rgb(255, 101, 32);
-		box-shadow: 0px 0px 31px 4px rgba(255, 101, 32, 0.7);
+		background: var(--color-incursion);
+		box-shadow: 0px 0px 31px 4px color-mix(in srgb, var(--color-incursion) 70%, transparent);
 	}
 	to {
-		background: rgb(194, 161, 15);
-		box-shadow: 0px 0px 31px 4px rgba(194, 161, 15, 0.7);
+		background: var(--color-incursion-area);
+		box-shadow: 0px 0px 31px 4px color-mix(in srgb, var(--color-incursion-area) 70%, transparent);
 	}
 }
 
+/* *********************************************************** */
+/* Tab menu to toggle map / timeline view                      */
+/* *********************************************************** */
 
 .tab-menu{
 	flex-grow: 1;
@@ -202,7 +241,7 @@ h1{
 	text-decoration: none;
 	color: white;
 	font-weight: 600;
-	background: rgb(0, 0, 0);
+	background: black;
 	padding: 0.3em 0.7em;
 	margin-left: 5px;
 	transition: 0.05s all ease-in;
@@ -219,17 +258,15 @@ h1{
 
 [data-view="map"] .tab-menu a[href="#map-view"],
 [data-view="timeline"] .tab-menu a[href="#timeline-view"]{
-	background: rgb(28, 59, 46);
+	background: var(--color-map-bg);
 }
 
-
-/* *********************************************************** */
 /* *********************************************************** */
 /* Timeline view                                               */
-
+/* *********************************************************** */
 
 .timeline{
-	background: rgb(28, 59, 46);
+	background: var(--color-map-bg);
 	flex-direction: column;
 }
 .timeline .graph{
@@ -237,19 +274,13 @@ h1{
 	padding: 20px;
 }
 .timeline .event-log{
-	background:hsla(0, 0%, 100%, 0.075);
 	flex-grow: 1;
 }
 
 
-
-
-
-
-
-
-
-
+/* *********************************************************** */
+/* Mouse follower popup                                        */
+/* *********************************************************** */
 
 
 .mouse-follower{
