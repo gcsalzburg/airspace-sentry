@@ -24,5 +24,5 @@
 + Add a little micro bar chart of logged events and incursions (if needed)
 + Highlight the flight on map as you hover over the chart
 + ~~Make incursion flash the bar at the bottom in bright red~~
-+ Add comments into css file
-+ Add TimeAgo
++ ~~Add comments into css file~~
++ ~~Add TimeAgo~~

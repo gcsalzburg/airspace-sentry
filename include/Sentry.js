@@ -691,18 +691,35 @@ export default class{
 		this.options.dom.stats.incursions.parentNode.classList.toggle('is-incursion', incursions)
 
 		// Update hover status
+		const incursionDates = this.getFirstAndLastDate(this.trackedData.incursionTracks.features)
+		this.options.dom.stats.incursions.dataset.hoverStatus = `First incursion: ${incursionDates.firstDateAgo}, latest incursion: ${incursionDates.lastDateAgo}`
 		const loggedDates = this.getFirstAndLastDate(this.trackedData.loggedTracks.features)
-		this.options.dom.stats.logged.dataset.hoverStatus = `From: ${loggedDates.firstDateFormatted}, to: ${loggedDates.lastDateFormatted}`
+		this.options.dom.stats.logged.dataset.hoverStatus = `Logging from ${loggedDates.dateAgo} (may not be continuous)`
 	}
 
 	getFirstAndLastDate = (featureArray) => {
+		if(featureArray.length <= 0){
+			return {
+				firstDateFormatted: '[no data]',
+				firstDateAgo: '[no data]',
+				lastDateFormatted: '[no data]',
+				lastDateAgo: '[no data]',
+				dateAgo: '[no data]'
+			}	
+		}
 		const firstDate = new Date(featureArray.reduce((min, current) => Math.min(min, current.properties.firstData), Date.now()))
 		const lastDate = new Date(featureArray.reduce((max, current) => Math.max(max, current.properties.firstData), 0))
+		const firstAgo = this._timeAgo(firstDate)
+		const lastAgo = this._timeAgo(lastDate)
+		const ago = `${(firstAgo.endsWith(' ago') ? firstAgo.substring(0, firstAgo.length-4) : firstAgo)} to ${lastAgo}`
 		return {
 			firstDate : firstDate,
-			firstDateFormatted: `${firstDate.toLocaleDateString('en-GB')} ${firstDate.toLocaleTimeString('en-GB')}`,
+			firstDateFormatted: `${firstDate.toLocaleString('en-GB')}`,
+			firstDateAgo: firstAgo,
 			lastDate : lastDate,
-			lastDateFormatted: `${lastDate.toLocaleDateString('en-GB')} ${lastDate.toLocaleTimeString('en-GB')}`,
+			lastDateFormatted: `${lastDate.toLocaleString('en-GB')}`,
+			lastDateAgo: lastAgo,
+			dateAgo: ago
 		}
 	}
 
@@ -834,5 +851,27 @@ export default class{
 	_everyNthElement = (array, nth = 10) => {
 		return array.filter((_, i) => (i % nth) === 0)
 	}
+
+	// Time ago string
+	_timeAgo = (input) => {
+		const date = (input instanceof Date) ? input : new Date(input)
+		const formatter = new Intl.RelativeTimeFormat('en')
+		const ranges = {
+		  years: 3600 * 24 * 365,
+		  months: 3600 * 24 * 30,
+		  weeks: 3600 * 24 * 7,
+		  days: 3600 * 24,
+		  hours: 3600,
+		  minutes: 60,
+		  seconds: 1
+		}
+		const secondsElapsed = (date.getTime() - Date.now()) / 1000
+		for (let key in ranges) {
+		  if (ranges[key] < Math.abs(secondsElapsed)) {
+			 const delta = secondsElapsed / ranges[key]
+			 return formatter.format(Math.round(delta), key)
+		  }
+		}
+	 }
 
 }
