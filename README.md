@@ -29,3 +29,5 @@
 + Save map pan and zoom to localStorage
 + Add aircraft type symbols
 + Fix bug to show aircraft hover inside incursion zone
++ Add favicon
++ Add name (Airbus A329) and optional flight code to the popup. Other data in status footer perhaps
