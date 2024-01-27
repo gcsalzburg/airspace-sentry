@@ -135,6 +135,9 @@ h1{
 	top: 5px;
 	position: absolute;
 }
+.marker_aircraft.icon_helicopter > i{
+	background-image: url(../assets/images/helicopter.svg);
+}
 .marker_aircraft.is_intersect{
 	background: color-mix(in srgb, var(--color-incursion) 76%, transparent);
 	animation: 0.4s linear infinite alternate aircraft-incursion;

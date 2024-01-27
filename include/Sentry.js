@@ -50,6 +50,7 @@ export default class{
 			editable: false
 		},
 		intersect_area: '/data/tda.geojson',
+		icao_db: '/data/icao_type_db.json',
 		rapidAPI: {
 			key: '',
 			host: 'adsbexchange-com1.p.rapidapi.com'
@@ -82,6 +83,9 @@ export default class{
 
 		// Load RapidAPI Key
 		this.loadAPIKey()
+
+		// Load ICAO database
+		this.loadICAO()
 
 		// Load search area data
 		this.loadSearchArea()
@@ -174,6 +178,7 @@ export default class{
 		})
 
 		this.map.on('mousemove', 'incursionArea', (e) => {
+			
 			this.map.getCanvas().style.cursor = 'pointer'
 			if (e.features.length > 0) {
 				if(e.features.at(0).properties.height){
@@ -405,6 +410,7 @@ export default class{
 		marker_elem.id = flight.properties.id
 		marker_elem.innerHTML = '<i></i>'
 		marker_elem.classList.add('marker_aircraft')
+		marker_elem.classList.add(`icon_${flight.properties.icon}`)
 		marker_elem.classList.toggle('is_intersect', flight.properties.intersects)
 
 		// Add new marker
@@ -420,7 +426,7 @@ export default class{
 		this.aircraftMarkers.push(marker)
 
 		// Add marker hover
-		marker.getElement().addEventListener('mouseenter', (e) => {
+		marker.getElement().addEventListener('mousemove', (e) => {
 			this.options.follower.set(`${flight.properties.flightName} (${String(flight.properties.hex).toUpperCase()}) - ${flight.geometry.coordinates.at(-1)[2]}m`)
 		})
 		marker.getElement().addEventListener('mouseleave', (e) => {
@@ -465,6 +471,17 @@ export default class{
 				// Tidy up flightname
 				const flightName = (aircraft.flight ?? '').trim()
 
+				// Fetch aircraft data
+				const aircraftData = this.getAircraftDataFromICAO(aircraft.t)
+				
+				// Set icon correctly
+
+				let icon = "default"
+				if(["Helicopter", "Gyrocopter", "Tiltrotor"].includes(aircraftData.AircraftDescription)){
+					// Icon has rotors of some sort
+					icon = "helicopter"
+				}
+
 				// Create new active flight geoJSON feature line
 				const newActiveFlight = {
 					type: "Feature",
@@ -474,7 +491,9 @@ export default class{
 						flightName: flightName,
 						firstData: requestTime,
 						lastData: requestTime,
-						intersects: false
+						intersects: false,
+						aircraft_data: aircraftData,
+						icon: icon
 					},
 					geometry: {
 						type: 'LineString',
@@ -794,6 +813,36 @@ export default class{
 			]
 		}
 	}
+
+	// **********************************************************
+	// ICAO database
+
+	loadICAO = async () => {
+		this.icaoDb = await fetch(this.options.icao_db).then(response => response.json()).catch(err => `Error loading incursion area: ${err}`)
+
+		// Unique AircraftDescriptions = 
+		// "LandPlane", "Amphibian", "Helicopter", "Gyrocopter", "Tiltrotor", "SeaPlane"
+
+		// Unique EngineType = 
+		// "Jet", "Piston", "Turboprop/Turboshaft", "Electric", "Rocket"
+
+		// Unique EngineCount = 
+		// "1", "2", "3", "4", "6", "8", "C"
+
+		//console.log(this.icaoDb.map(e => e.EngineCount).filter((value, index, array) => array.indexOf(value) === index))
+	}
+
+	// Find the aircraft data based on the designator from the loaded in ICAO database
+	// There are likely to be many similar aircraft with the same designator, but for this purpose they are close enough we can just pick the first one
+	getAircraftDataFromICAO = (designator) => {
+		const data = this.icaoDb.filter(aircraft => aircraft.Designator == designator)
+		if(data.length == 0){
+			return {}
+		}
+		return data.at(0)
+	}
+
+
 
 	// **********************************************************
 	// LocalStorage save/restore for API key and tracked data
