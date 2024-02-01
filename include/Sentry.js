@@ -427,8 +427,7 @@ export default class{
 
 		// Add marker hover
 		marker.getElement().addEventListener('mousemove', (e) => {
-			this.options.follower.set(`${flight.properties.flightName} (${String(flight.properties.hex).toUpperCase()}) - ${flight.geometry.coordinates.at(-1)[2]}m`)
-			console.log(`${flight.properties.aircraft_data.ManufacturerCode} ${flight.properties.aircraft_data.ModelFullName}`)
+			this.options.follower.set(`${flight.properties.aircraft_data.ModelFullName} (${String(flight.properties.flightName).toUpperCase()})<br>${flight.geometry.coordinates.at(-1)[2]}m`)
 		})
 		marker.getElement().addEventListener('mouseleave', (e) => {
 			this.options.follower.clear()
