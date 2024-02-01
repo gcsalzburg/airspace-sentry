@@ -50,7 +50,7 @@ export default class{
 			editable: false
 		},
 		intersect_area: '/data/tda.geojson',
-		icao_db: '/data/icao_type_db.json',
+		icao_db: '/data/icao_type_db_reduced.json',
 		rapidAPI: {
 			key: '',
 			host: 'adsbexchange-com1.p.rapidapi.com'
@@ -428,6 +428,7 @@ export default class{
 		// Add marker hover
 		marker.getElement().addEventListener('mousemove', (e) => {
 			this.options.follower.set(`${flight.properties.flightName} (${String(flight.properties.hex).toUpperCase()}) - ${flight.geometry.coordinates.at(-1)[2]}m`)
+			console.log(`${flight.properties.aircraft_data.ManufacturerCode} ${flight.properties.aircraft_data.ModelFullName}`)
 		})
 		marker.getElement().addEventListener('mouseleave', (e) => {
 			this.options.follower.clear()
