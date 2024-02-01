@@ -49,8 +49,8 @@ export default class{
 			radius: 150000, // best = 38000
 			editable: false
 		},
-		intersect_area: '/data/tda.geojson',
-		icao_db: '/data/icao_type_db_reduced.json',
+		intersect_area: './data/tda.geojson',
+		icao_db: './data/icao_type_db_reduced.json',
 		rapidAPI: {
 			key: '',
 			host: 'adsbexchange-com1.p.rapidapi.com'
