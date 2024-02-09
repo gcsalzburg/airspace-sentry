@@ -32,3 +32,4 @@
 + Add favicon
 + ~~Add name (Airbus A329) and optional flight code to the popup. Other data in status footer perhaps~~
 + Make it clearer that name (e.g. Airbus A329) may not be correct
++ Add example intersection regions: Heathrow approach, Salters Knowle sky, Hadrian's Wall
