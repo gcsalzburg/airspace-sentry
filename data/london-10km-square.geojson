@@ -1,0 +1,47 @@
+{
+	"type": "FeatureCollection",
+	"features": [
+	  {
+		 "type": "Feature",
+		 "properties": {
+			 "title": "London 10km sq",
+			 "height": {
+				 "min": 0,
+				 "max": 300
+			 }
+		 },
+		 "geometry": {
+			"type": "Polygon",
+			"coordinates": [
+			  [
+				 [
+					-0.31266,
+					51.47473,
+					0
+				 ],
+				 [
+					-0.16926,
+					51.47473,
+					0
+				 ],
+				 [
+					-0.16926,
+					51.38463,
+					0
+				 ],
+				 [
+					-0.31266,
+					51.38463,
+					0
+				 ],
+				 [
+					-0.31266,
+					51.47473,
+					0
+				 ]
+			  ]
+			]
+		 }
+	  }
+	]
+ }
